@@ -109,6 +109,7 @@ pub struct DownloadRecord {
     pub title: String,
     pub format_selector: String,
     pub output_dir: String,
+    pub output_path: Option<String>,
     pub status: String,
     pub error_message: Option<String>,
     pub created_at: String,

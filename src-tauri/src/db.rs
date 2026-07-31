@@ -1,5 +1,5 @@
 use crate::models::DownloadRecord;
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension};
 use std::path::Path;
 
 pub fn init_db(path: &Path) -> rusqlite::Result<Connection> {
@@ -12,6 +12,7 @@ pub fn init_db(path: &Path) -> rusqlite::Result<Connection> {
             title TEXT NOT NULL,
             format_selector TEXT NOT NULL,
             output_dir TEXT NOT NULL,
+            output_path TEXT,
             status TEXT NOT NULL DEFAULT 'downloading',
             error_message TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -48,9 +49,32 @@ pub fn set_status(
     Ok(())
 }
 
+pub fn set_output_path(conn: &Connection, id: i64, output_path: &str) -> rusqlite::Result<()> {
+    conn.execute(
+        "UPDATE downloads SET output_path = ?1 WHERE id = ?2",
+        (output_path, id),
+    )?;
+    Ok(())
+}
+
+pub fn output_path(conn: &Connection, id: i64) -> rusqlite::Result<Option<String>> {
+    conn.query_row(
+        "SELECT output_path FROM downloads WHERE id = ?1",
+        [id],
+        |row| row.get(0),
+    )
+    .optional()
+    .map(|v: Option<Option<String>>| v.flatten())
+}
+
+pub fn delete_download(conn: &Connection, id: i64) -> rusqlite::Result<()> {
+    conn.execute("DELETE FROM downloads WHERE id = ?1", [id])?;
+    Ok(())
+}
+
 pub fn list_downloads(conn: &Connection) -> rusqlite::Result<Vec<DownloadRecord>> {
     let mut stmt = conn.prepare(
-        "SELECT id, url, title, format_selector, output_dir, status, error_message, created_at
+        "SELECT id, url, title, format_selector, output_dir, output_path, status, error_message, created_at
          FROM downloads ORDER BY id DESC",
     )?;
     let rows = stmt.query_map([], |row| {
@@ -60,9 +84,10 @@ pub fn list_downloads(conn: &Connection) -> rusqlite::Result<Vec<DownloadRecord>
             title: row.get(2)?,
             format_selector: row.get(3)?,
             output_dir: row.get(4)?,
-            status: row.get(5)?,
-            error_message: row.get(6)?,
-            created_at: row.get(7)?,
+            output_path: row.get(5)?,
+            status: row.get(6)?,
+            error_message: row.get(7)?,
+            created_at: row.get(8)?,
         })
     })?;
     rows.collect()

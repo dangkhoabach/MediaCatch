@@ -56,6 +56,7 @@ pub async fn start_download(
     title: String,
     format_selector: String,
     output_dir: String,
+    output_format: String,
 ) -> Result<i64, String> {
     let download_id = {
         let conn = state.db.lock().map_err(|e| e.to_string())?;
@@ -69,12 +70,27 @@ pub async fn start_download(
             "-f",
             &format_selector,
             "--merge-output-format",
-            "mp4",
+            &output_format,
             "-o",
             &output_template,
+            "--quiet",
+            "--no-warnings",
+            // `--progress` forces the progress bar even though our stdout is
+            // a pipe, not a tty — yt-dlp otherwise silently skips it entirely
+            // in that case, no matter what --progress-template is set to.
+            "--progress",
             "--newline",
+            // The "download:" prefix is yt-dlp's TYPE selector (which event
+            // this template applies to), not literal output — the printed
+            // line is just the template text, so it needs its own marker
+            // ("DKB|") to be distinguishable from the final --print line below.
             "--progress-template",
-            "download:%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s",
+            "download:DKB|%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s",
+            // Prints the final merged file's real path as the last line of
+            // output, once post-processing is done — used to populate
+            // output_path for "open file" in the library view.
+            "--print",
+            "after_move:filepath",
             &url,
         ])
         .spawn()
@@ -88,11 +104,14 @@ pub async fn start_download(
 
     let app_handle = app.clone();
     tauri::async_runtime::spawn(async move {
+        let mut output_path: Option<String> = None;
+        let mut last_error: Option<String> = None;
         while let Some(event) = rx.recv().await {
             match event {
                 CommandEvent::Stdout(bytes) => {
                     let line = String::from_utf8_lossy(&bytes);
-                    if let Some(rest) = line.trim().strip_prefix("download:") {
+                    let line = line.trim();
+                    if let Some(rest) = line.strip_prefix("DKB|") {
                         let mut parts = rest.splitn(3, '|');
                         let progress = DownloadProgress {
                             download_id,
@@ -101,6 +120,16 @@ pub async fn start_download(
                             eta: parts.next().unwrap_or_default().trim().to_string(),
                         };
                         let _ = app_handle.emit("download-progress", progress);
+                    } else if !line.is_empty() {
+                        // With --quiet --no-warnings, the only other stdout
+                        // line is the `--print after_move:filepath` output.
+                        output_path = Some(line.to_string());
+                    }
+                }
+                CommandEvent::Stderr(bytes) => {
+                    let line = String::from_utf8_lossy(&bytes).trim().to_string();
+                    if !line.is_empty() {
+                        last_error = Some(line);
                     }
                 }
                 CommandEvent::Terminated(payload) => {
@@ -111,8 +140,11 @@ pub async fn start_download(
                             &conn,
                             download_id,
                             if success { "completed" } else { "error" },
-                            None,
+                            if success { None } else { last_error.as_deref() },
                         );
+                        if let Some(path) = &output_path {
+                            let _ = db::set_output_path(&conn, download_id, path);
+                        }
                     }
                     if let Ok(mut children) = app_state.children.lock() {
                         children.remove(&download_id);
@@ -194,6 +226,21 @@ pub fn resume_download(_state: State<'_, AppState>, _download_id: i64) -> Result
 pub fn list_downloads(state: State<'_, AppState>) -> Result<Vec<DownloadRecord>, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
     db::list_downloads(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn delete_download_record(
+    state: State<'_, AppState>,
+    download_id: i64,
+    delete_file: bool,
+) -> Result<(), String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    if delete_file {
+        if let Some(path) = db::output_path(&conn, download_id).map_err(|e| e.to_string())? {
+            let _ = std::fs::remove_file(path);
+        }
+    }
+    db::delete_download(&conn, download_id).map_err(|e| e.to_string())
 }
 
 #[derive(Deserialize)]

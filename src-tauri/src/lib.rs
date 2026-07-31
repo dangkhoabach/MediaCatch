@@ -128,6 +128,7 @@ pub fn run() {
             ytdlp::pause_download,
             ytdlp::resume_download,
             ytdlp::list_downloads,
+            ytdlp::delete_download_record,
             ytdlp::update_ytdlp,
         ])
         .build(tauri::generate_context!())
