@@ -315,14 +315,19 @@ export function HomePage() {
                         checked={selectedFormatId === f.format_id}
                         onChange={() => setSelectedFormatId(f.format_id)}
                       />
-                      <Video className="size-3.5 text-muted-foreground" />
-                      <span className="w-14 font-medium">{f.height ? `${f.height}p` : "—"}</span>
-                      <span className="w-16 text-muted-foreground">{f.fps ? `${f.fps}fps` : ""}</span>
-                      <span className="w-20 uppercase text-muted-foreground">{f.vcodec}</span>
-                      <span className="w-20 text-muted-foreground">
+                      <Video className="size-3.5 shrink-0 text-muted-foreground" />
+                      <span className="w-14 shrink-0 font-medium">{f.height ? `${f.height}p` : "—"}</span>
+                      <span className="w-14 shrink-0 text-muted-foreground">{f.fps ? `${f.fps}fps` : ""}</span>
+                      <span
+                        className="w-24 shrink-0 truncate uppercase text-muted-foreground"
+                        title={f.vcodec}
+                      >
+                        {f.vcodec}
+                      </span>
+                      <span className="w-20 shrink-0 text-muted-foreground">
                         {f.has_audio ? t("home.hasAudio") : t("home.noAudio")}
                       </span>
-                      <span className="ml-auto text-muted-foreground">{formatSize(f.filesize)}</span>
+                      <span className="ml-auto shrink-0 text-muted-foreground">{formatSize(f.filesize)}</span>
                     </label>
                   ))}
                 </div>

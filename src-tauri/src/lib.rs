@@ -151,9 +151,15 @@ pub fn run() {
             let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
             let tray_menu = Menu::with_items(app, &[&downloads_item, &separator, &show_item, &quit_item])?;
 
+            // A dedicated download-arrow glyph reads better at menu-bar size
+            // than the full app icon (default_window_icon) — kept as a
+            // template image (plain black shape, transparent background) so
+            // macOS auto-inverts it for light/dark menu bars.
+            let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-icon.png"))?;
+
             TrayIconBuilder::with_id("main-tray")
                 .menu(&tray_menu)
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(tray_icon)
                 .icon_as_template(true)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => show_main_window(app),
