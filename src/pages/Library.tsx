@@ -6,13 +6,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n/context";
 import type { DownloadRecord } from "@/types/download";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
-const statusLabel: Record<DownloadRecord["status"], string> = {
-  downloading: "Đang tải",
-  completed: "Hoàn tất",
-  error: "Lỗi",
-  canceled: "Đã huỷ",
+const statusKey: Record<DownloadRecord["status"], TranslationKey> = {
+  downloading: "library.status.downloading",
+  completed: "library.status.completed",
+  error: "library.status.error",
+  canceled: "library.status.canceled",
 };
 
 const statusVariant: Record<DownloadRecord["status"], "default" | "destructive" | "secondary"> = {
@@ -23,6 +25,7 @@ const statusVariant: Record<DownloadRecord["status"], "default" | "destructive" 
 };
 
 export function LibraryPage() {
+  const { t } = useTranslation();
   const [records, setRecords] = useState<DownloadRecord[]>([]);
 
   async function refresh() {
@@ -49,14 +52,14 @@ export function LibraryPage() {
       await api.deleteDownloadRecord(id, deleteFile);
       refresh();
     } catch (e) {
-      toast.error("Không xoá được", { description: String(e) });
+      toast.error(t("library.deleteError"), { description: String(e) });
     }
   }
 
   if (records.length === 0) {
     return (
       <div className="flex h-full items-center justify-center pt-11 text-sm text-muted-foreground">
-        Chưa có video nào trong lịch sử
+        {t("library.empty")}
       </div>
     );
   }
@@ -74,7 +77,7 @@ export function LibraryPage() {
               <p className="truncate text-xs text-destructive">{r.error_message}</p>
             )}
           </div>
-          <Badge variant={statusVariant[r.status]}>{statusLabel[r.status]}</Badge>
+          <Badge variant={statusVariant[r.status]}>{t(statusKey[r.status])}</Badge>
           {r.status === "completed" && r.output_path && (
             <>
               <Button size="icon" variant="ghost" onClick={() => openPath(r.output_path!)}>

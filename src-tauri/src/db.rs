@@ -57,6 +57,11 @@ pub fn set_output_path(conn: &Connection, id: i64, output_path: &str) -> rusqlit
     Ok(())
 }
 
+pub fn status(conn: &Connection, id: i64) -> rusqlite::Result<Option<String>> {
+    conn.query_row("SELECT status FROM downloads WHERE id = ?1", [id], |row| row.get(0))
+        .optional()
+}
+
 pub fn output_path(conn: &Connection, id: i64) -> rusqlite::Result<Option<String>> {
     conn.query_row(
         "SELECT output_path FROM downloads WHERE id = ?1",

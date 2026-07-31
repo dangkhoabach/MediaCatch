@@ -16,5 +16,6 @@ export const api = {
   listDownloads: () => invoke<DownloadRecord[]>("list_downloads"),
   deleteDownloadRecord: (downloadId: number, deleteFile: boolean) =>
     invoke<void>("delete_download_record", { downloadId, deleteFile }),
-  updateYtdlp: () => invoke<string>("update_ytdlp"),
+  /** Resolves to the new version string if an update was applied, or `null` if already up to date. */
+  updateYtdlp: () => invoke<string | null>("update_ytdlp"),
 };

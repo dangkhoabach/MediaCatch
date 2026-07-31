@@ -4,9 +4,11 @@ import { Pause, Play, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { api } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n/context";
 import type { DownloadProgress, DownloadRecord } from "@/types/download";
 
 export function QueuePage() {
+  const { t } = useTranslation();
   const [downloads, setDownloads] = useState<DownloadRecord[]>([]);
   const [progressById, setProgressById] = useState<Record<number, DownloadProgress>>({});
   const [pausedIds, setPausedIds] = useState<Set<number>>(new Set());
@@ -56,7 +58,7 @@ export function QueuePage() {
   if (downloads.length === 0) {
     return (
       <div className="flex h-full items-center justify-center pt-11 text-sm text-muted-foreground">
-        Không có tải nào đang chạy
+        {t("queue.empty")}
       </div>
     );
   }
@@ -84,7 +86,7 @@ export function QueuePage() {
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{progress?.percent?.trim() || "0%"}</span>
               <span>{progress?.speed?.trim() ?? ""}</span>
-              <span>{progress?.eta?.trim() ? `ETA ${progress.eta.trim()}` : ""}</span>
+              <span>{progress?.eta?.trim() ? t("queue.eta", { eta: progress.eta.trim() }) : ""}</span>
             </div>
           </div>
         );

@@ -101,6 +101,7 @@ pub async fn start_download(
         .lock()
         .map_err(|e| e.to_string())?
         .insert(download_id, child);
+    crate::refresh_downloads_menu(&app);
 
     let app_handle = app.clone();
     tauri::async_runtime::spawn(async move {
@@ -135,26 +136,43 @@ pub async fn start_download(
                 CommandEvent::Terminated(payload) => {
                     let success = payload.code == Some(0);
                     let app_state = app_handle.state::<AppState>();
-                    if let Ok(conn) = app_state.db.lock() {
-                        let _ = db::set_status(
-                            &conn,
-                            download_id,
-                            if success { "completed" } else { "error" },
-                            if success { None } else { last_error.as_deref() },
-                        );
-                        if let Some(path) = &output_path {
-                            let _ = db::set_output_path(&conn, download_id, path);
+                    // cancel_download already marks the row "canceled" and
+                    // removes the child synchronously — this Terminated event
+                    // still arrives afterwards (killing the process triggers
+                    // it too), so it must not clobber that with "error".
+                    let was_canceled = app_state
+                        .db
+                        .lock()
+                        .ok()
+                        .and_then(|conn| db::status(&conn, download_id).ok().flatten())
+                        .as_deref()
+                        == Some("canceled");
+
+                    if !was_canceled {
+                        if let Ok(conn) = app_state.db.lock() {
+                            let _ = db::set_status(
+                                &conn,
+                                download_id,
+                                if success { "completed" } else { "error" },
+                                if success { None } else { last_error.as_deref() },
+                            );
+                            if let Some(path) = &output_path {
+                                let _ = db::set_output_path(&conn, download_id, path);
+                            }
                         }
                     }
                     if let Ok(mut children) = app_state.children.lock() {
                         children.remove(&download_id);
                     }
-                    let event_name = if success {
-                        "download-complete"
-                    } else {
-                        "download-error"
-                    };
-                    let _ = app_handle.emit(event_name, download_id);
+                    crate::refresh_downloads_menu(&app_handle);
+                    if !was_canceled {
+                        let event_name = if success {
+                            "download-complete"
+                        } else {
+                            "download-error"
+                        };
+                        let _ = app_handle.emit(event_name, download_id);
+                    }
                     break;
                 }
                 _ => {}
@@ -166,11 +184,13 @@ pub async fn start_download(
 }
 
 #[tauri::command]
-pub fn cancel_download(state: State<'_, AppState>, download_id: i64) -> Result<(), String> {
+pub fn cancel_download(app: AppHandle, state: State<'_, AppState>, download_id: i64) -> Result<(), String> {
     let mut children = state.children.lock().map_err(|e| e.to_string())?;
     if let Some(child) = children.remove(&download_id) {
         child.kill().map_err(|e| e.to_string())?;
     }
+    drop(children);
+    crate::refresh_downloads_menu(&app);
     let conn = state.db.lock().map_err(|e| e.to_string())?;
     db::set_status(&conn, download_id, "canceled", None).map_err(|e| e.to_string())
 }
@@ -261,8 +281,11 @@ fn ytdlp_release_asset_name() -> &'static str {
 /// and, if found, downloads it into the app data dir — independent of this
 /// app's own release cycle, so YouTube extractor breakage gets fixed as
 /// soon as upstream ships a fix rather than waiting on an app update.
+/// Returns `Ok(None)` when already up to date, `Ok(Some(new_version))` when
+/// it just updated — callers use this to decide whether a notification is
+/// warranted.
 #[tauri::command]
-pub async fn update_ytdlp(app: AppHandle) -> Result<String, String> {
+pub async fn update_ytdlp(app: AppHandle) -> Result<Option<String>, String> {
     let current = ytdlp_command(&app)
         .args(["--version"])
         .output()
@@ -284,7 +307,7 @@ pub async fn update_ytdlp(app: AppHandle) -> Result<String, String> {
         .map_err(|e| e.to_string())?;
 
     if release.tag_name == current_version {
-        return Ok(current_version);
+        return Ok(None);
     }
 
     let asset_url = format!(
@@ -317,5 +340,5 @@ pub async fn update_ytdlp(app: AppHandle) -> Result<String, String> {
             .map_err(|e| e.to_string())?;
     }
 
-    Ok(release.tag_name)
+    Ok(Some(release.tag_name))
 }

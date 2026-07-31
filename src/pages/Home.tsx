@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Loader2, Music, Video } from "lucide-react";
@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { ensureOutputDir, getOutputFormat } from "@/lib/settings";
+import { useTranslation } from "@/lib/i18n/context";
 import type { VideoInfo } from "@/types/download";
 
 function formatSize(bytes: number | null): string {
@@ -24,6 +25,7 @@ function formatDuration(seconds: number | null): string {
 }
 
 export function HomePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,8 +34,8 @@ export function HomePage() {
   const [audioOnly, setAudioOnly] = useState(false);
   const [starting, setStarting] = useState(false);
 
-  async function handleFetchInfo() {
-    const trimmed = url.trim();
+  async function handleFetchInfo(overrideUrl?: string) {
+    const trimmed = (overrideUrl ?? url).trim();
     if (!trimmed) return;
     setLoading(true);
     setInfo(null);
@@ -46,7 +48,7 @@ export function HomePage() {
         .sort((a, b) => (b.height ?? 0) - (a.height ?? 0))[0];
       setSelectedFormatId(best?.format_id ?? null);
     } catch (e) {
-      toast.error("Không lấy được thông tin video", { description: String(e) });
+      toast.error(t("home.fetchError"), { description: String(e) });
     } finally {
       setLoading(false);
     }
@@ -63,17 +65,25 @@ export function HomePage() {
         selector = "bestaudio/best";
       } else {
         const format = info.formats.find((f) => f.format_id === selectedFormatId);
-        if (!format) throw new Error("Chưa chọn chất lượng");
+        if (!format) throw new Error(t("home.noFormatSelected"));
         selector = format.has_audio ? format.format_id : `${format.format_id}+bestaudio/best`;
       }
       await api.startDownload(url.trim(), info.title, selector, outputDir, outputFormat);
-      toast.success("Đã bắt đầu tải", { description: info.title });
+      toast.success(t("home.downloadStarted"), { description: info.title });
       navigate("/queue");
     } catch (e) {
-      toast.error("Không thể bắt đầu tải", { description: String(e) });
+      toast.error(t("home.downloadStartError"), { description: String(e) });
     } finally {
       setStarting(false);
     }
+  }
+
+  function handleDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const dropped = e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text/plain");
+    if (!dropped) return;
+    setUrl(dropped);
+    handleFetchInfo(dropped);
   }
 
   const videoFormats = (info?.formats ?? [])
@@ -81,16 +91,20 @@ export function HomePage() {
     .sort((a, b) => (b.height ?? 0) - (a.height ?? 0));
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto p-6 pt-14">
+    <div
+      className="flex h-full flex-col gap-4 overflow-y-auto p-6 pt-14"
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={handleDrop}
+    >
       <div className="flex gap-2">
         <Input
-          placeholder="Dán link YouTube..."
+          placeholder={t("home.urlPlaceholder")}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleFetchInfo()}
         />
-        <Button onClick={handleFetchInfo} disabled={loading || !url.trim()}>
-          {loading ? <Loader2 className="size-4 animate-spin" /> : "Lấy thông tin"}
+        <Button onClick={() => handleFetchInfo()} disabled={loading || !url.trim()}>
+          {loading ? <Loader2 className="size-4 animate-spin" /> : t("home.fetchInfo")}
         </Button>
       </div>
 
@@ -109,7 +123,7 @@ export function HomePage() {
           <div className="flex items-center gap-2">
             <Switch checked={audioOnly} onCheckedChange={setAudioOnly} id="audio-only" />
             <Label htmlFor="audio-only" className="flex items-center gap-1.5 text-sm">
-              <Music className="size-3.5" /> Chỉ tải âm thanh
+              <Music className="size-3.5" /> {t("home.audioOnly")}
             </Label>
           </div>
 
@@ -131,7 +145,7 @@ export function HomePage() {
                   <span className="w-16 text-muted-foreground">{f.fps ? `${f.fps}fps` : ""}</span>
                   <span className="w-20 uppercase text-muted-foreground">{f.vcodec}</span>
                   <span className="w-20 text-muted-foreground">
-                    {f.has_audio ? "có tiếng" : "không tiếng"}
+                    {f.has_audio ? t("home.hasAudio") : t("home.noAudio")}
                   </span>
                   <span className="ml-auto text-muted-foreground">{formatSize(f.filesize)}</span>
                 </label>
@@ -140,7 +154,7 @@ export function HomePage() {
           )}
 
           <Button onClick={handleDownload} disabled={starting} className="self-start">
-            {starting ? <Loader2 className="size-4 animate-spin" /> : "Tải xuống"}
+            {starting ? <Loader2 className="size-4 animate-spin" /> : t("home.download")}
           </Button>
         </div>
       )}

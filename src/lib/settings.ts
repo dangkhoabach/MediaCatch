@@ -3,6 +3,7 @@ import { downloadDir } from "@tauri-apps/api/path";
 const KEYS = {
   outputDir: "dkb-downloader:outputDir",
   outputFormat: "dkb-downloader:outputFormat",
+  notificationsEnabled: "dkb-downloader:notificationsEnabled",
 };
 
 export type OutputFormat = "mp4" | "mkv";
@@ -30,4 +31,12 @@ export function getOutputFormat(): OutputFormat {
 
 export function setOutputFormat(format: OutputFormat) {
   localStorage.setItem(KEYS.outputFormat, format);
+}
+
+export function getNotificationsEnabled(): boolean {
+  return localStorage.getItem(KEYS.notificationsEnabled) !== "false";
+}
+
+export function setNotificationsEnabled(enabled: boolean) {
+  localStorage.setItem(KEYS.notificationsEnabled, String(enabled));
 }
