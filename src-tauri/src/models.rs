@@ -114,3 +114,37 @@ pub struct DownloadRecord {
     pub error_message: Option<String>,
     pub created_at: String,
 }
+
+#[derive(Serialize)]
+pub struct WatchedChannel {
+    pub id: i64,
+    pub url: String,
+    pub title: String,
+    pub enabled: bool,
+    pub interval_minutes: i64,
+    pub output_dir: String,
+    pub output_format: String,
+    pub last_checked_at: Option<String>,
+    pub created_at: String,
+}
+
+/// `yt-dlp -J --flat-playlist` dumps ONE json object for the whole
+/// playlist/channel (unlike plain `-j` which prints one line per video) —
+/// `--flat-playlist` also skips resolving each entry's full metadata, which
+/// is what makes polling a channel cheap enough to do every few minutes.
+#[derive(Deserialize)]
+pub struct YtDlpPlaylistDump {
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub entries: Vec<YtDlpPlaylistEntry>,
+}
+
+#[derive(Deserialize)]
+pub struct YtDlpPlaylistEntry {
+    pub id: String,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub url: Option<String>,
+}

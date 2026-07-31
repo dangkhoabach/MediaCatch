@@ -1,4 +1,4 @@
-import { Download, History, ListVideo, Settings } from "lucide-react";
+import { Download, History, ListVideo, Radar, Settings } from "lucide-react";
 import { NavLink } from "react-router";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/context";
@@ -10,6 +10,7 @@ export function Sidebar() {
     { to: "/", label: t("nav.home"), icon: Download, end: true },
     { to: "/queue", label: t("nav.queue"), icon: ListVideo, end: true },
     { to: "/library", label: t("nav.library"), icon: History, end: true },
+    { to: "/watch", label: t("nav.watch"), icon: Radar, end: true },
     { to: "/settings", label: t("nav.settings"), icon: Settings, end: true },
   ];
 

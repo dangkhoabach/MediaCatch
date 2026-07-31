@@ -1,6 +1,7 @@
 mod db;
 mod models;
 mod notification;
+mod watch;
 mod ytdlp;
 
 use rusqlite::Connection;
@@ -216,6 +217,19 @@ pub fn run() {
                 let _ = window_vibrancy::apply_mica(&window, None);
             }
 
+            // Polls watched channels/playlists for new uploads. Only runs
+            // while the app process is alive (tray-resident counts, fully
+            // quit does not) — there's no OS-level background scheduler
+            // wired up, so a channel that's due while the app is quit just
+            // gets checked on the next launch instead of being missed.
+            let watch_app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                loop {
+                    watch::poll_due_channels(&watch_app_handle).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(300)).await;
+                }
+            });
+
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -237,6 +251,10 @@ pub fn run() {
             ytdlp::list_downloads,
             ytdlp::delete_download_record,
             ytdlp::update_ytdlp,
+            watch::add_watched_channel,
+            watch::list_watched_channels,
+            watch::remove_watched_channel,
+            watch::set_watched_channel_enabled,
             set_native_theme,
             show_notification,
             open_notification_settings,

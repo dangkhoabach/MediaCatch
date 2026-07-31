@@ -26,7 +26,7 @@ fn ffmpeg_binary_name() -> &'static str {
 /// Prefers a copy previously fetched by `update_ytdlp` into the app data dir
 /// (kept up to date independently of app releases) over the bundled sidecar
 /// seed binary, which only exists so the app works offline on first run.
-fn ytdlp_command(app: &AppHandle) -> Command {
+pub(crate) fn ytdlp_command(app: &AppHandle) -> Command {
     if let Ok(updated) = app
         .path()
         .app_data_dir()
@@ -54,9 +54,17 @@ fn ffmpeg_location() -> Option<String> {
 }
 
 #[tauri::command]
-pub async fn fetch_video_info(app: AppHandle, url: String) -> Result<VideoInfo, String> {
+pub async fn fetch_video_info(
+    app: AppHandle,
+    url: String,
+    cookies_browser: Option<String>,
+) -> Result<VideoInfo, String> {
+    let mut args: Vec<String> = vec!["-j".into(), "--no-playlist".into(), "--no-warnings".into()];
+    push_cookies_arg(&mut args, &cookies_browser);
+    args.push(url);
+
     let output = ytdlp_command(&app)
-        .args(["-j", "--no-playlist", "--no-warnings", &url])
+        .args(&args)
         .output()
         .await
         .map_err(|e| e.to_string())?;
@@ -69,6 +77,18 @@ pub async fn fetch_video_info(app: AppHandle, url: String) -> Result<VideoInfo, 
     Ok(info.into())
 }
 
+/// Reads cookies straight from an installed browser's own cookie store
+/// (`--cookies-from-browser`) so yt-dlp can fetch private/age-restricted/
+/// login-required content using the user's existing session — no separate
+/// login flow inside this app. Shared by `fetch_video_info` and
+/// `start_download` so both use the same browser choice consistently.
+fn push_cookies_arg(args: &mut Vec<String>, cookies_browser: &Option<String>) {
+    if let Some(browser) = cookies_browser.as_deref().filter(|b| !b.is_empty()) {
+        args.push("--cookies-from-browser".into());
+        args.push(browser.to_string());
+    }
+}
+
 #[tauri::command]
 pub async fn start_download(
     app: AppHandle,
@@ -78,6 +98,9 @@ pub async fn start_download(
     format_selector: String,
     output_dir: String,
     output_format: String,
+    embed_metadata: bool,
+    cookies_browser: Option<String>,
+    use_aria2c: bool,
 ) -> Result<i64, String> {
     let download_id = {
         let conn = state.db.lock().map_err(|e| e.to_string())?;
@@ -118,6 +141,29 @@ pub async fn start_download(
     if let Some(ffmpeg_path) = ffmpeg_location() {
         args.push("--ffmpeg-location".into());
         args.push(ffmpeg_path);
+    }
+    if embed_metadata {
+        args.push("--embed-thumbnail".into());
+        args.push("--embed-chapters".into());
+        args.push("--embed-metadata".into());
+        // Subtitles (manual + auto-generated) are non-fatal when absent —
+        // yt-dlp just skips embedding rather than failing the download.
+        args.push("--write-subs".into());
+        args.push("--write-auto-subs".into());
+        args.push("--sub-langs".into());
+        args.push("en,vi".into());
+        args.push("--embed-subs".into());
+    }
+    push_cookies_arg(&mut args, &cookies_browser);
+    if use_aria2c {
+        // Relies on a system-installed aria2c (e.g. `brew install aria2`) —
+        // unlike yt-dlp/ffmpeg this isn't bundled as a sidecar, since there's
+        // no verified static-build source for it the way evermeet.cx covers
+        // ffmpeg. yt-dlp itself gives a clear "not found" error if it's missing.
+        args.push("--external-downloader".into());
+        args.push("aria2c".into());
+        args.push("--external-downloader-args".into());
+        args.push("aria2c:-x16 -s16 -k1M".into());
     }
     args.push(url.clone());
 

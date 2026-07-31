@@ -18,14 +18,23 @@ import {
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/context";
 import {
+  getCookiesBrowser,
+  getEmbedMetadata,
   getNotificationsEnabled,
   getOutputDir,
   getOutputFormat,
+  getUseAria2c,
+  setCookiesBrowser,
+  setEmbedMetadata,
   setNotificationsEnabled,
   setOutputDir,
   setOutputFormat,
+  setUseAria2c,
+  type CookiesBrowser,
   type OutputFormat,
 } from "@/lib/settings";
+
+const COOKIES_BROWSER_OPTIONS: CookiesBrowser[] = ["none", "safari", "chrome", "firefox", "edge", "brave"];
 
 const THEME_OPTIONS = [
   { value: "light", icon: Sun, labelKey: "settings.theme.light" as const },
@@ -48,6 +57,9 @@ export function SettingsPage() {
   const [outputDir, setOutputDirState] = useState(getOutputDir());
   const [outputFormat, setOutputFormatState] = useState<OutputFormat>(getOutputFormat());
   const [notificationsEnabled, setNotificationsEnabledState] = useState(getNotificationsEnabled());
+  const [embedMetadata, setEmbedMetadataState] = useState(getEmbedMetadata());
+  const [cookiesBrowser, setCookiesBrowserState] = useState<CookiesBrowser>(getCookiesBrowser());
+  const [useAria2c, setUseAria2cState] = useState(getUseAria2c());
 
   async function handleBrowse() {
     const selected = await open({ directory: true, defaultPath: outputDir || undefined });
@@ -62,6 +74,23 @@ export function SettingsPage() {
     const format = value as OutputFormat;
     setOutputFormatState(format);
     setOutputFormat(format);
+  }
+
+  function handleEmbedMetadataToggle(checked: boolean) {
+    setEmbedMetadataState(checked);
+    setEmbedMetadata(checked);
+  }
+
+  function handleCookiesBrowserChange(value: string | null) {
+    if (!value) return;
+    const browser = value as CookiesBrowser;
+    setCookiesBrowserState(browser);
+    setCookiesBrowser(browser);
+  }
+
+  function handleAria2cToggle(checked: boolean) {
+    setUseAria2cState(checked);
+    setUseAria2c(checked);
   }
 
   function handleNotificationsToggle(checked: boolean) {
@@ -141,6 +170,39 @@ export function SettingsPage() {
           <span className="text-xs text-muted-foreground">{t("settings.notificationsHint")}</span>
         </div>
         <Switch checked={notificationsEnabled} onCheckedChange={handleNotificationsToggle} />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col">
+          <span className="text-sm">{t("settings.embedMetadata")}</span>
+          <span className="text-xs text-muted-foreground">{t("settings.embedMetadataHint")}</span>
+        </div>
+        <Switch checked={embedMetadata} onCheckedChange={handleEmbedMetadataToggle} />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>{t("settings.cookiesBrowser")}</Label>
+        <span className="text-xs text-muted-foreground">{t("settings.cookiesBrowserHint")}</span>
+        <Select value={cookiesBrowser} onValueChange={handleCookiesBrowserChange}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {COOKIES_BROWSER_OPTIONS.map((browser) => (
+              <SelectItem key={browser} value={browser}>
+                {t(`settings.cookiesBrowser.${browser}` as const)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col">
+          <span className="text-sm">{t("settings.useAria2c")}</span>
+          <span className="text-xs text-muted-foreground">{t("settings.useAria2cHint")}</span>
+        </div>
+        <Switch checked={useAria2c} onCheckedChange={handleAria2cToggle} />
       </div>
     </div>
   );

@@ -38,3 +38,15 @@ export interface DownloadProgress {
   speed: string;
   eta: string;
 }
+
+export interface WatchedChannel {
+  id: number;
+  url: string;
+  title: string;
+  enabled: boolean;
+  interval_minutes: number;
+  output_dir: string;
+  output_format: string;
+  last_checked_at: string | null;
+  created_at: string;
+}

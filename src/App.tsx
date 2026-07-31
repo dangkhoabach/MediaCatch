@@ -9,6 +9,7 @@ import { UpdateDialog } from "@/components/layout/UpdateDialog";
 import { HomePage } from "@/pages/Home";
 import { QueuePage } from "@/pages/Queue";
 import { LibraryPage } from "@/pages/Library";
+import { WatchPage } from "@/pages/Watch";
 import { SettingsPage } from "@/pages/Settings";
 import { LanguageProvider, useTranslation } from "@/lib/i18n/context";
 import { api } from "@/lib/api";
@@ -90,6 +91,32 @@ function DownloadNotifications() {
   return null;
 }
 
+/// Watched channels/playlists are polled entirely in Rust (see watch.rs) —
+/// this just turns each "found a new upload" event into a native
+/// notification, gated by the same frontend-owned toggle as everything else.
+function WatchNotifications() {
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    const unlisten = listen<{ channelTitle: string; videoTitle: string }>(
+      "watched-new-video",
+      (event) => {
+        if (!getNotificationsEnabled()) return;
+        invoke("show_notification", {
+          title: t("notification.watchedNewVideo.title", { channel: event.payload.channelTitle }),
+          body: event.payload.videoTitle,
+          route: "/queue",
+        }).catch(() => {});
+      },
+    );
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [t]);
+
+  return null;
+}
+
 /// Checks for a newer yt-dlp release once per app launch — independent of
 /// this app's own update cycle (see ytdlp.rs's update_ytdlp).
 function YtdlpUpdateChecker() {
@@ -138,6 +165,7 @@ function App() {
       <NativeThemeSync />
       <LanguageProvider>
         <DownloadNotifications />
+        <WatchNotifications />
         <YtdlpUpdateChecker />
         <UpdateDialog />
         <HashRouter>
@@ -151,6 +179,7 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/queue" element={<QueuePage />} />
                 <Route path="/library" element={<LibraryPage />} />
+                <Route path="/watch" element={<WatchPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Routes>
             </main>
