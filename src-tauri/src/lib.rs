@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{Manager, WebviewWindowBuilder, WindowEvent};
+use tauri::{Emitter, Manager, WebviewWindowBuilder, WindowEvent};
 #[cfg(target_os = "macos")]
 use tauri::{ActivationPolicy, LogicalPosition};
 use tauri_plugin_shell::process::CommandChild;
@@ -114,10 +114,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
-        // tauri-plugin-updater is a Cargo dependency already (see Cargo.toml)
-        // but isn't registered yet: it requires a non-null `plugins.updater`
-        // config (endpoint + pubkey) or the app panics on launch. Wired up in
-        // Phase 4 once the update distribution endpoint is decided.
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&app_data_dir)?;
@@ -163,6 +160,39 @@ pub fn run() {
                     _ => {}
                 })
                 .build(app)?;
+
+            // Start from Tauri's own platform-default menu (File/Edit/View/Window
+            // as already shown) and only extend the Help submenu, so nothing
+            // else about the native menu bar regresses.
+            let app_menu = Menu::default(app.handle())?;
+            for item in app_menu.items()? {
+                if let Some(submenu) = item.as_submenu() {
+                    if submenu.text()? == "Help" {
+                        let check_update = MenuItem::with_id(
+                            app,
+                            "check-update",
+                            "Check for Updates…",
+                            true,
+                            None::<&str>,
+                        )?;
+                        submenu.append(&tauri::menu::PredefinedMenuItem::separator(app)?)?;
+                        submenu.append(&check_update)?;
+                    }
+                }
+            }
+            app.set_menu(app_menu)?;
+
+            let update_app_handle = app.handle().clone();
+            app.on_menu_event(move |app, event| {
+                if event.id().as_ref() == "check-update" {
+                    // The updater plugin's check/download/install flow runs
+                    // entirely from the frontend (it needs a UI for progress
+                    // and the restart prompt); this just brings the window
+                    // forward and tells it to start.
+                    show_main_window(app);
+                    let _ = update_app_handle.emit("check-update-clicked", ());
+                }
+            });
 
             #[cfg(target_os = "macos")]
             {

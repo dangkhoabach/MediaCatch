@@ -9,6 +9,7 @@
     "opener:default",
     "opener:allow-open-path",
     "notification:default",
+    "updater:default",
     "process:allow-restart",
     "dialog:default"
   ]

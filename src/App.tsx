@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Toaster } from "@/components/ui/sonner";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { UpdateDialog } from "@/components/layout/UpdateDialog";
 import { HomePage } from "@/pages/Home";
 import { QueuePage } from "@/pages/Queue";
 import { LibraryPage } from "@/pages/Library";
@@ -138,6 +139,7 @@ function App() {
       <LanguageProvider>
         <DownloadNotifications />
         <YtdlpUpdateChecker />
+        <UpdateDialog />
         <HashRouter>
           <NotificationNavigator />
           <KeyboardShortcuts />

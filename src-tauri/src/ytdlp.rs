@@ -14,6 +14,15 @@ fn ytdlp_binary_name() -> &'static str {
     "yt-dlp"
 }
 
+#[cfg(windows)]
+fn ffmpeg_binary_name() -> &'static str {
+    "ffmpeg.exe"
+}
+#[cfg(not(windows))]
+fn ffmpeg_binary_name() -> &'static str {
+    "ffmpeg"
+}
+
 /// Prefers a copy previously fetched by `update_ytdlp` into the app data dir
 /// (kept up to date independently of app releases) over the bundled sidecar
 /// seed binary, which only exists so the app works offline on first run.
@@ -29,7 +38,19 @@ fn ytdlp_command(app: &AppHandle) -> Command {
     }
     app.shell()
         .sidecar("yt-dlp")
-        .expect("yt-dlp sidecar binary not bundled — run scripts/fetch-ytdlp.sh")
+        .expect("yt-dlp sidecar binary not bundled — run scripts/fetch-sidecars.sh")
+}
+
+/// Resolves the bundled ffmpeg sidecar's on-disk path so it can be passed to
+/// yt-dlp via `--ffmpeg-location`. Can't use `Shell::sidecar()` for this since
+/// that spawns a process — we just need the path, mirroring the same
+/// exe-relative resolution tauri-plugin-shell uses internally. Falls back to
+/// yt-dlp's own PATH search (returns None) if the bundled copy is missing,
+/// which only happens in a dev checkout that hasn't run the fetch script.
+fn ffmpeg_location() -> Option<String> {
+    let exe_dir = tauri::utils::platform::current_exe().ok()?.parent()?.to_path_buf();
+    let path = exe_dir.join(ffmpeg_binary_name());
+    path.exists().then(|| path.to_string_lossy().into_owned())
 }
 
 #[tauri::command]
@@ -65,34 +86,43 @@ pub async fn start_download(
     };
 
     let output_template = format!("{output_dir}/%(title)s.%(ext)s");
+    let mut args: Vec<String> = vec![
+        "-f".into(),
+        format_selector.clone(),
+        "--merge-output-format".into(),
+        output_format,
+        "-o".into(),
+        output_template,
+        "--quiet".into(),
+        "--no-warnings".into(),
+        // `--progress` forces the progress bar even though our stdout is
+        // a pipe, not a tty — yt-dlp otherwise silently skips it entirely
+        // in that case, no matter what --progress-template is set to.
+        "--progress".into(),
+        "--newline".into(),
+        // The "download:" prefix is yt-dlp's TYPE selector (which event
+        // this template applies to), not literal output — the printed
+        // line is just the template text, so it needs its own marker
+        // ("DKB|") to be distinguishable from the final --print line below.
+        "--progress-template".into(),
+        "download:DKB|%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s".into(),
+        // Prints the final merged file's real path as the last line of
+        // output, once post-processing is done — used to populate
+        // output_path for "open file" in the library view.
+        "--print".into(),
+        "after_move:filepath".into(),
+    ];
+    // A real installed .app has no shell PATH to find ffmpeg on, unlike this
+    // dev checkout (which inherits the terminal's PATH and finds Homebrew's
+    // copy) — point yt-dlp straight at the bundled sidecar when present.
+    if let Some(ffmpeg_path) = ffmpeg_location() {
+        args.push("--ffmpeg-location".into());
+        args.push(ffmpeg_path);
+    }
+    args.push(url.clone());
+
     let (mut rx, child) = ytdlp_command(&app)
-        .args([
-            "-f",
-            &format_selector,
-            "--merge-output-format",
-            &output_format,
-            "-o",
-            &output_template,
-            "--quiet",
-            "--no-warnings",
-            // `--progress` forces the progress bar even though our stdout is
-            // a pipe, not a tty — yt-dlp otherwise silently skips it entirely
-            // in that case, no matter what --progress-template is set to.
-            "--progress",
-            "--newline",
-            // The "download:" prefix is yt-dlp's TYPE selector (which event
-            // this template applies to), not literal output — the printed
-            // line is just the template text, so it needs its own marker
-            // ("DKB|") to be distinguishable from the final --print line below.
-            "--progress-template",
-            "download:DKB|%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s",
-            // Prints the final merged file's real path as the last line of
-            // output, once post-processing is done — used to populate
-            // output_path for "open file" in the library view.
-            "--print",
-            "after_move:filepath",
-            &url,
-        ])
+        .args(&args)
         .spawn()
         .map_err(|e| e.to_string())?;
 

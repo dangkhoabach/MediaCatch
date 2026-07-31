@@ -33,6 +33,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -40,6 +41,12 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "externalBin": ["binaries/yt-dlp"]
+    "externalBin": ["binaries/yt-dlp", "binaries/ffmpeg"]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": ["https://updates.dangkhoabach.vn/dkb-downloader/latest.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDYwMEIyNTQ4NEFFQjFBQzkKUldUSkd1dEtTQ1VMWU5GVElqQzRLYUpXc3ordnhqQ3d3dlRXcGJJb3J2bEMwYlFXbnlrV1VnemIK"
+    }
   }
 }
