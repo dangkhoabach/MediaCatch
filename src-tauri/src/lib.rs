@@ -1,8 +1,21 @@
+mod db;
+mod models;
+mod ytdlp;
+
+use rusqlite::Connection;
+use std::collections::HashMap;
+use std::sync::Mutex;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{Manager, WebviewWindowBuilder, WindowEvent};
 #[cfg(target_os = "macos")]
 use tauri::{ActivationPolicy, LogicalPosition};
+use tauri_plugin_shell::process::CommandChild;
+
+pub struct AppState {
+    pub db: Mutex<Connection>,
+    pub children: Mutex<HashMap<i64, CommandChild>>,
+}
 
 /// Regular apps always count as foreground-capable to macOS even with zero
 /// open windows, so hiding the window alone doesn't read as "running in the
@@ -26,11 +39,21 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init())
         // tauri-plugin-updater is a Cargo dependency already (see Cargo.toml)
         // but isn't registered yet: it requires a non-null `plugins.updater`
         // config (endpoint + pubkey) or the app panics on launch. Wired up in
         // Phase 4 once the update distribution endpoint is decided.
         .setup(|app| {
+            let app_data_dir = app.path().app_data_dir()?;
+            std::fs::create_dir_all(&app_data_dir)?;
+            let db_path = app_data_dir.join("dkb-downloader.db");
+            let conn = db::init_db(&db_path)?;
+            app.manage(AppState {
+                db: Mutex::new(conn),
+                children: Mutex::new(HashMap::new()),
+            });
+
             // The "main" window is declared in tauri.conf.json with
             // "create": false so it's built here instead — there's no JSON
             // config option for traffic-light position, only this builder
@@ -98,6 +121,15 @@ pub fn run() {
                 api.prevent_close();
             }
         })
+        .invoke_handler(tauri::generate_handler![
+            ytdlp::fetch_video_info,
+            ytdlp::start_download,
+            ytdlp::cancel_download,
+            ytdlp::pause_download,
+            ytdlp::resume_download,
+            ytdlp::list_downloads,
+            ytdlp::update_ytdlp,
+        ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|_app_handle, _event| {

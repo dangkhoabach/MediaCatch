@@ -24,9 +24,13 @@ tauri-plugin-notification = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-dialog = "2"
+tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 window-vibrancy = "0.6"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+reqwest = { version = "0.13", default-features = false, features = ["default-tls", "json"] }
 
 # Windows autostart/tray parity isn't needed yet, but notify-rust (used for
 # click-through notifications, see DKB-Monitor's notification.rs) only ships
