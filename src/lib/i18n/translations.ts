@@ -25,12 +25,15 @@ export const translations = {
     "home.playlistExpanded": "Found {count} videos — review the list, then add them to the queue",
     "home.playlistExpandError": "Couldn't read this playlist",
     "home.playlistEmpty": "This playlist has no videos",
+    "home.audioMergeNote": "\"No audio\" formats still get the best audio track merged in automatically when downloaded.",
 
     "queue.empty": "No downloads in progress",
     "queue.eta": "ETA {eta}",
 
     "library.empty": "No videos in your library yet",
     "library.deleteError": "Couldn't delete",
+    "library.openError": "Couldn't open the file",
+    "library.revealError": "Couldn't reveal the file",
     "library.status.downloading": "Downloading",
     "library.status.completed": "Completed",
     "library.status.error": "Error",
@@ -115,12 +118,15 @@ export const translations = {
     "home.playlistExpanded": "Tìm thấy {count} video — xem lại danh sách rồi thêm vào hàng đợi",
     "home.playlistExpandError": "Không đọc được playlist này",
     "home.playlistEmpty": "Playlist này không có video nào",
+    "home.audioMergeNote": "Định dạng \"không tiếng\" vẫn sẽ được tự động ghép âm thanh tốt nhất khi tải về.",
 
     "queue.empty": "Không có tải nào đang chạy",
     "queue.eta": "Còn lại {eta}",
 
     "library.empty": "Chưa có video nào trong lịch sử",
     "library.deleteError": "Không xoá được",
+    "library.openError": "Không mở được file",
+    "library.revealError": "Không mở được thư mục chứa file",
     "library.status.downloading": "Đang tải",
     "library.status.completed": "Hoàn tất",
     "library.status.error": "Lỗi",

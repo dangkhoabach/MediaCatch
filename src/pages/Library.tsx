@@ -56,6 +56,22 @@ export function LibraryPage() {
     }
   }
 
+  async function handleOpen(path: string) {
+    try {
+      await openPath(path);
+    } catch (e) {
+      toast.error(t("library.openError"), { description: String(e) });
+    }
+  }
+
+  async function handleReveal(path: string) {
+    try {
+      await revealItemInDir(path);
+    } catch (e) {
+      toast.error(t("library.revealError"), { description: String(e) });
+    }
+  }
+
   if (records.length === 0) {
     return (
       <div className="flex h-full items-center justify-center pt-11 text-sm text-muted-foreground">
@@ -80,10 +96,10 @@ export function LibraryPage() {
           <Badge variant={statusVariant[r.status]}>{t(statusKey[r.status])}</Badge>
           {r.status === "completed" && r.output_path && (
             <>
-              <Button size="icon" variant="ghost" onClick={() => openPath(r.output_path!)}>
+              <Button size="icon" variant="ghost" onClick={() => handleOpen(r.output_path!)}>
                 <Play className="size-4" />
               </Button>
-              <Button size="icon" variant="ghost" onClick={() => revealItemInDir(r.output_path!)}>
+              <Button size="icon" variant="ghost" onClick={() => handleReveal(r.output_path!)}>
                 <FolderOpen className="size-4" />
               </Button>
             </>

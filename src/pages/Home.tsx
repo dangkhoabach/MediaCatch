@@ -429,6 +429,10 @@ export function HomePage() {
                 </div>
               )}
 
+              {!audioOnly && videoFormats.some((f) => !f.has_audio) && (
+                <p className="text-xs text-muted-foreground">{t("home.audioMergeNote")}</p>
+              )}
+
               {videoFormats.length === 0 && imageFormats.length > 0 && (
                 <div className="flex flex-col overflow-hidden rounded-lg border border-border">
                   {imageFormats.map((f) => (

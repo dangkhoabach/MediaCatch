@@ -1,9 +1,35 @@
 use crate::models::{DownloadProgress, DownloadRecord, PlaylistEntry, VideoInfo, YtDlpInfo, YtDlpPlaylistDump};
 use crate::{db, AppState};
 use serde::Deserialize;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_shell::process::{Command, CommandEvent};
 use tauri_plugin_shell::ShellExt;
+
+/// Where a download's working directory lives while yt-dlp downloads and
+/// post-processes it — kept out of the user's chosen output folder so a
+/// crash, cancel, or leftover post-processing artifact (e.g. subtitle files
+/// before embedding) never lands there. Pure function of `download_id`, so
+/// `cancel_download` can independently clean it up without needing to share
+/// the path through app state.
+fn temp_download_dir(download_id: i64) -> PathBuf {
+    std::env::temp_dir().join("dkb-downloader").join(download_id.to_string())
+}
+
+/// Moves the finished file out of its temp working directory into the
+/// user's chosen output folder, returning the new path. Falls back to
+/// copy+delete when the rename fails across filesystem boundaries — the temp
+/// dir and a user-selected output folder (e.g. an external drive) aren't
+/// always on the same volume.
+fn move_to_output_dir(temp_path: &str, output_dir: &str) -> Option<String> {
+    let temp_path = Path::new(temp_path);
+    let dest = Path::new(output_dir).join(temp_path.file_name()?);
+    if std::fs::rename(temp_path, &dest).is_err() {
+        std::fs::copy(temp_path, &dest).ok()?;
+        let _ = std::fs::remove_file(temp_path);
+    }
+    Some(dest.to_string_lossy().into_owned())
+}
 
 #[cfg(windows)]
 fn ytdlp_binary_name() -> &'static str {
@@ -157,7 +183,9 @@ pub async fn start_download(
             .map_err(|e| e.to_string())?
     };
 
-    let output_template = format!("{output_dir}/%(title)s.%(ext)s");
+    let temp_dir = temp_download_dir(download_id);
+    std::fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
+    let output_template = format!("{}/%(title)s.%(ext)s", temp_dir.display());
     let mut args: Vec<String> = vec![
         "-f".into(),
         format_selector.clone(),
@@ -204,10 +232,13 @@ pub async fn start_download(
         args.push("--embed-thumbnail".into());
         args.push("--embed-chapters".into());
         args.push("--embed-metadata".into());
-        // Subtitles (manual + auto-generated) are non-fatal when absent —
-        // yt-dlp just skips embedding rather than failing the download.
-        args.push("--write-subs".into());
-        args.push("--write-auto-subs".into());
+        // --embed-subs alone (without --write-subs/--write-auto-subs) still
+        // fetches manual + auto-generated subs and embeds them — yt-dlp just
+        // downloads them to a temp .vtt and deletes it once embedded, so no
+        // leftover subtitle files are left next to the final video. Adding
+        // --write-subs here would make yt-dlp treat them as a requested
+        // output and keep them on disk instead of cleaning up. Missing subs
+        // are non-fatal either way — yt-dlp just skips embedding.
         args.push("--sub-langs".into());
         args.push("en,vi".into());
         args.push("--embed-subs".into());
@@ -283,16 +314,39 @@ pub async fn start_download(
                         == Some("canceled");
 
                     if !was_canceled {
-                        if let Ok(conn) = app_state.db.lock() {
-                            let _ = db::set_status(
-                                &conn,
-                                download_id,
-                                if success { "completed" } else { "error" },
-                                if success { None } else { last_error.as_deref() },
-                            );
-                            if let Some(path) = &output_path {
-                                let _ = db::set_output_path(&conn, download_id, path);
+                        if success {
+                            // Only clean up the temp dir once the finished file has
+                            // actually been moved out of it — if we can't tell which
+                            // file it is (output_path missing) or the move fails,
+                            // leave it in place rather than risk losing a completed
+                            // download.
+                            let moved = output_path
+                                .as_deref()
+                                .and_then(|path| move_to_output_dir(path, &output_dir));
+                            if let Ok(conn) = app_state.db.lock() {
+                                match &moved {
+                                    Some(final_path) => {
+                                        let _ = db::set_status(&conn, download_id, "completed", None);
+                                        let _ = db::set_output_path(&conn, download_id, final_path);
+                                    }
+                                    None => {
+                                        let _ = db::set_status(
+                                            &conn,
+                                            download_id,
+                                            "error",
+                                            Some("Couldn't move the finished file to the output folder"),
+                                        );
+                                    }
+                                }
                             }
+                            if moved.is_some() {
+                                let _ = std::fs::remove_dir_all(temp_download_dir(download_id));
+                            }
+                        } else {
+                            if let Ok(conn) = app_state.db.lock() {
+                                let _ = db::set_status(&conn, download_id, "error", last_error.as_deref());
+                            }
+                            let _ = std::fs::remove_dir_all(temp_download_dir(download_id));
                         }
                     }
                     if let Ok(mut children) = app_state.children.lock() {
@@ -326,7 +380,9 @@ pub fn cancel_download(app: AppHandle, state: State<'_, AppState>, download_id: 
     drop(children);
     crate::refresh_downloads_menu(&app);
     let conn = state.db.lock().map_err(|e| e.to_string())?;
-    db::set_status(&conn, download_id, "canceled", None).map_err(|e| e.to_string())
+    db::set_status(&conn, download_id, "canceled", None).map_err(|e| e.to_string())?;
+    let _ = std::fs::remove_dir_all(temp_download_dir(download_id));
+    Ok(())
 }
 
 /// yt-dlp has no built-in pause; suspending/resuming the OS process itself
