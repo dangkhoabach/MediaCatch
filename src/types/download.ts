@@ -50,3 +50,8 @@ export interface WatchedChannel {
   last_checked_at: string | null;
   created_at: string;
 }
+
+export interface PlaylistEntry {
+  title: string;
+  url: string;
+}

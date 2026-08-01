@@ -50,6 +50,27 @@ function detectPlatform(rawUrl: string): string | null {
   }
 }
 
+/**
+ * Only recognizes unambiguous, YouTube-only playlist links (a bare
+ * `/playlist?list=...` or `list=` without an accompanying `v=`) — the
+ * platform we've actually verified this against. A `watch?v=X&list=Y` link
+ * (very common when the video being watched happens to be part of a
+ * playlist) is deliberately NOT treated as a playlist: that link's intent is
+ * almost always "this one video", matching fetch_video_info's existing
+ * --no-playlist behavior. Other platforms fall through to the normal
+ * single-link flow rather than guessing at their playlist URL shapes.
+ */
+function isPlaylistUrl(rawUrl: string): boolean {
+  try {
+    const u = new URL(rawUrl);
+    const host = u.hostname.toLowerCase();
+    if (!/(^|\.)youtube\.com$/.test(host)) return false;
+    return u.searchParams.has("list") && !u.searchParams.has("v");
+  } catch {
+    return false;
+  }
+}
+
 export function HomePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -65,9 +86,29 @@ export function HomePage() {
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
   const [batchRunning, setBatchRunning] = useState(false);
 
+  async function handleExpandPlaylist(playlistUrl: string) {
+    setLoading(true);
+    try {
+      const entries = await api.expandPlaylist(playlistUrl);
+      if (entries.length === 0) throw new Error(t("home.playlistEmpty"));
+      setBatchMode(true);
+      setBatchItems([]);
+      setBatchText(entries.map((e) => e.url).join("\n"));
+      toast.success(t("home.playlistExpanded", { count: entries.length }));
+    } catch (e) {
+      toast.error(t("home.playlistExpandError"), { description: String(e) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleFetchInfo(overrideUrl?: string) {
     const trimmed = (overrideUrl ?? url).trim();
     if (!trimmed) return;
+    if (isPlaylistUrl(trimmed)) {
+      await handleExpandPlaylist(trimmed);
+      return;
+    }
     setLoading(true);
     setInfo(null);
     setPlatform(detectPlatform(trimmed));

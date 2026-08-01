@@ -22,6 +22,9 @@ export const translations = {
     "home.batchPlaceholder": "Paste multiple links, one per line...",
     "home.batchSubmit": "Add all to queue",
     "home.batchSummary": "{success}/{total} downloads started",
+    "home.playlistExpanded": "Found {count} videos — review the list, then add them to the queue",
+    "home.playlistExpandError": "Couldn't read this playlist",
+    "home.playlistEmpty": "This playlist has no videos",
 
     "queue.empty": "No downloads in progress",
     "queue.eta": "ETA {eta}",
@@ -109,6 +112,9 @@ export const translations = {
     "home.batchPlaceholder": "Dán nhiều link, mỗi link một dòng...",
     "home.batchSubmit": "Thêm tất cả vào hàng đợi",
     "home.batchSummary": "Đã bắt đầu {success}/{total} lượt tải",
+    "home.playlistExpanded": "Tìm thấy {count} video — xem lại danh sách rồi thêm vào hàng đợi",
+    "home.playlistExpandError": "Không đọc được playlist này",
+    "home.playlistEmpty": "Playlist này không có video nào",
 
     "queue.empty": "Không có tải nào đang chạy",
     "queue.eta": "Còn lại {eta}",

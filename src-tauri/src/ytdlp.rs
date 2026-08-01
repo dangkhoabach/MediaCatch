@@ -1,4 +1,4 @@
-use crate::models::{DownloadProgress, DownloadRecord, VideoInfo, YtDlpInfo};
+use crate::models::{DownloadProgress, DownloadRecord, PlaylistEntry, VideoInfo, YtDlpInfo, YtDlpPlaylistDump};
 use crate::{db, AppState};
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -89,6 +89,55 @@ fn push_cookies_arg(args: &mut Vec<String>, cookies_browser: &Option<String>) {
     }
 }
 
+/// `--flat-playlist` only resolves cheap per-entry fields (id/title/url), not
+/// full metadata for every video — what makes both channel polling (watch.rs)
+/// and expanding a whole playlist here fast even for large lists. `limit`
+/// caps how many entries come back (used by channel polling, which only
+/// cares about the most recent uploads); `None` fetches the entire playlist.
+pub(crate) async fn dump_playlist(
+    app: &AppHandle,
+    url: &str,
+    limit: Option<u32>,
+) -> Result<YtDlpPlaylistDump, String> {
+    let mut args: Vec<String> = vec!["-J".into(), "--flat-playlist".into(), "--no-warnings".into()];
+    if let Some(limit) = limit {
+        args.push("--playlist-end".into());
+        args.push(limit.to_string());
+    }
+    args.push(url.to_string());
+
+    let output = ytdlp_command(app)
+        .args(&args)
+        .output()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+    }
+    serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())
+}
+
+/// Resolves every video in a playlist/channel URL into its own clean,
+/// individually-downloadable link — used by the frontend to expand a
+/// playlist link into the batch-mode queue instead of bulk-downloading it
+/// through a single yt-dlp invocation (which the rest of this app's
+/// architecture, one DB row / one progress stream per download, isn't built
+/// to represent).
+#[tauri::command]
+pub async fn expand_playlist(app: AppHandle, url: String) -> Result<Vec<PlaylistEntry>, String> {
+    let dump = dump_playlist(&app, &url, None).await?;
+    Ok(dump
+        .entries
+        .into_iter()
+        .filter_map(|entry| {
+            let url = entry.url?;
+            let title = entry.title.unwrap_or(entry.id);
+            Some(PlaylistEntry { title, url })
+        })
+        .collect())
+}
+
 #[tauri::command]
 pub async fn start_download(
     app: AppHandle,
@@ -118,6 +167,15 @@ pub async fn start_download(
         output_template,
         "--quiet".into(),
         "--no-warnings".into(),
+        // start_download always targets exactly one video — without this, a
+        // `watch?v=X&list=Y` URL (very common when the video being watched
+        // happens to be part of a playlist) would silently download the
+        // *entire* playlist Y instead of just video X, even though
+        // fetch_video_info (which already forces --no-playlist) only ever
+        // showed the user quality options for X. Bulk playlist downloads go
+        // through expand_playlist + batch mode instead, one clean URL per
+        // video, so this flag is always correct here.
+        "--no-playlist".into(),
         // `--progress` forces the progress bar even though our stdout is
         // a pipe, not a tty — yt-dlp otherwise silently skips it entirely
         // in that case, no matter what --progress-template is set to.

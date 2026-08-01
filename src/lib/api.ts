@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { DownloadRecord, VideoInfo, WatchedChannel } from "@/types/download";
+import type { DownloadRecord, PlaylistEntry, VideoInfo, WatchedChannel } from "@/types/download";
 import { getCookiesBrowser, getUseAria2c } from "@/lib/settings";
 
 /** `"none"` means "don't read any browser's cookies" — omit the arg entirely rather than send the literal string. */
@@ -37,6 +37,7 @@ export const api = {
     invoke<void>("delete_download_record", { downloadId, deleteFile }),
   /** Resolves to the new version string if an update was applied, or `null` if already up to date. */
   updateYtdlp: () => invoke<string | null>("update_ytdlp"),
+  expandPlaylist: (url: string) => invoke<PlaylistEntry[]>("expand_playlist", { url }),
   addWatchedChannel: (url: string, outputDir: string, outputFormat: string) =>
     invoke<WatchedChannel>("add_watched_channel", { url, outputDir, outputFormat }),
   listWatchedChannels: () => invoke<WatchedChannel[]>("list_watched_channels"),

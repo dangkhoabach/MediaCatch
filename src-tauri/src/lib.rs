@@ -257,6 +257,7 @@ pub fn run() {
             ytdlp::list_downloads,
             ytdlp::delete_download_record,
             ytdlp::update_ytdlp,
+            ytdlp::expand_playlist,
             watch::add_watched_channel,
             watch::list_watched_channels,
             watch::remove_watched_channel,

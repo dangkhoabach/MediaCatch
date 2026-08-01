@@ -1,30 +1,6 @@
-use crate::models::{WatchedChannel, YtDlpPlaylistDump};
+use crate::models::WatchedChannel;
 use crate::{db, ytdlp, AppState};
 use tauri::{AppHandle, Emitter, Manager, State};
-
-/// `--flat-playlist` only resolves cheap per-entry fields (id/title/url), not
-/// full metadata for every video — the only way polling a channel every few
-/// minutes stays fast enough to be practical. `--playlist-end` caps how far
-/// back it looks; monitoring only cares about the most recent uploads.
-async fn fetch_playlist_dump(app: &AppHandle, url: &str, limit: u32) -> Result<YtDlpPlaylistDump, String> {
-    let output = ytdlp::ytdlp_command(app)
-        .args([
-            "-J",
-            "--flat-playlist",
-            "--playlist-end",
-            &limit.to_string(),
-            "--no-warnings",
-            url,
-        ])
-        .output()
-        .await
-        .map_err(|e| e.to_string())?;
-
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
-    }
-    serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())
-}
 
 /// Registers a channel/playlist URL for monitoring. The current entries are
 /// recorded as already-known so the very first poll only reacts to videos
@@ -38,7 +14,7 @@ pub async fn add_watched_channel(
     output_dir: String,
     output_format: String,
 ) -> Result<WatchedChannel, String> {
-    let dump = fetch_playlist_dump(&app, &url, 5).await?;
+    let dump = ytdlp::dump_playlist(&app, &url, Some(5)).await?;
     let title = dump.title.unwrap_or_else(|| url.clone());
 
     let channel_id = {
@@ -92,7 +68,7 @@ pub async fn poll_due_channels(app: &AppHandle) {
     };
 
     for channel in due {
-        let dump = match fetch_playlist_dump(app, &channel.url, 5).await {
+        let dump = match ytdlp::dump_playlist(app, &channel.url, Some(5)).await {
             Ok(dump) => dump,
             Err(_) => continue, // transient network/extractor error — retry next tick
         };

@@ -148,3 +148,11 @@ pub struct YtDlpPlaylistEntry {
     #[serde(default)]
     pub url: Option<String>,
 }
+
+/// A single video resolved from `expand_playlist`, ready to hand to the
+/// frontend's batch-mode flow (one clean URL per video).
+#[derive(Serialize)]
+pub struct PlaylistEntry {
+    pub title: String,
+    pub url: String,
+}
