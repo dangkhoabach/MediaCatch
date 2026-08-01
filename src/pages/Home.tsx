@@ -75,17 +75,40 @@ export function HomePage() {
     try {
       const result = await api.fetchVideoInfo(trimmed);
       setInfo(result);
-      const best = [...result.formats]
-        .filter((f) => f.has_video)
-        .sort((a, b) => (b.height ?? 0) - (a.height ?? 0))[0];
-      const bestImage = [...result.formats]
-        .filter((f) => !f.has_video && !f.has_audio)
-        .sort((a, b) => (b.filesize ?? 0) - (a.filesize ?? 0))[0];
-      setSelectedFormatId(best?.format_id ?? bestImage?.format_id ?? null);
+      if (audioOnly) {
+        const bestAudio = [...result.formats]
+          .filter((f) => f.has_audio && !f.has_video)
+          .sort((a, b) => (b.tbr ?? 0) - (a.tbr ?? 0))[0];
+        setSelectedFormatId(bestAudio?.format_id ?? null);
+      } else {
+        const bestVideo = [...result.formats]
+          .filter((f) => f.has_video)
+          .sort((a, b) => (b.height ?? 0) - (a.height ?? 0))[0];
+        const bestImage = [...result.formats]
+          .filter((f) => !f.has_video && !f.has_audio)
+          .sort((a, b) => (b.filesize ?? 0) - (a.filesize ?? 0))[0];
+        setSelectedFormatId(bestVideo?.format_id ?? bestImage?.format_id ?? null);
+      }
     } catch (e) {
       toast.error(t("home.fetchError"), { description: String(e) });
     } finally {
       setLoading(false);
+    }
+  }
+
+  function handleAudioOnlyToggle(checked: boolean) {
+    setAudioOnly(checked);
+    if (!info) return;
+    if (checked) {
+      const bestAudio = [...info.formats]
+        .filter((f) => f.has_audio && !f.has_video)
+        .sort((a, b) => (b.tbr ?? 0) - (a.tbr ?? 0))[0];
+      setSelectedFormatId(bestAudio?.format_id ?? null);
+    } else {
+      const bestVideo = [...info.formats]
+        .filter((f) => f.has_video)
+        .sort((a, b) => (b.height ?? 0) - (a.height ?? 0))[0];
+      setSelectedFormatId(bestVideo?.format_id ?? null);
     }
   }
 
@@ -95,21 +118,16 @@ export function HomePage() {
     try {
       const outputDir = await ensureOutputDir();
       const outputFormat = getOutputFormat();
-      let selector: string;
-      if (audioOnly) {
-        selector = "bestaudio/best";
-      } else {
-        const format = info.formats.find((f) => f.format_id === selectedFormatId);
-        if (!format) throw new Error(t("home.noFormatSelected"));
-        // A format with neither video nor audio is a standalone asset (e.g.
-        // an Instagram/Twitter photo post) — already complete on its own,
-        // no audio to merge in.
-        selector = !format.has_video
+      const format = info.formats.find((f) => f.format_id === selectedFormatId);
+      if (!format) throw new Error(t("home.noFormatSelected"));
+      // A format with no video track is already a complete standalone asset
+      // on its own — an audio-only track, or (neither video nor audio) a
+      // photo post — no audio to merge in either way.
+      const selector = !format.has_video
+        ? format.format_id
+        : format.has_audio
           ? format.format_id
-          : format.has_audio
-            ? format.format_id
-            : `${format.format_id}+bestaudio/best`;
-      }
+          : `${format.format_id}+bestaudio/best`;
       await api.startDownload(
         url.trim(),
         info.title,
@@ -196,6 +214,10 @@ export function HomePage() {
   const imageFormats = (info?.formats ?? [])
     .filter((f) => !f.has_video && !f.has_audio)
     .sort((a, b) => (b.filesize ?? 0) - (a.filesize ?? 0));
+
+  const audioFormats = (info?.formats ?? [])
+    .filter((f) => f.has_audio && !f.has_video)
+    .sort((a, b) => (b.tbr ?? 0) - (a.tbr ?? 0));
 
   return (
     <div
@@ -295,10 +317,34 @@ export function HomePage() {
 
               {videoFormats.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <Switch checked={audioOnly} onCheckedChange={setAudioOnly} id="audio-only" />
+                  <Switch checked={audioOnly} onCheckedChange={handleAudioOnlyToggle} id="audio-only" />
                   <Label htmlFor="audio-only" className="flex items-center gap-1.5 text-sm">
                     <Music className="size-3.5" /> {t("home.audioOnly")}
                   </Label>
+                </div>
+              )}
+
+              {audioOnly && audioFormats.length > 0 && (
+                <div className="flex flex-col overflow-hidden rounded-lg border border-border">
+                  {audioFormats.map((f) => (
+                    <label
+                      key={f.format_id}
+                      className="flex cursor-pointer items-center gap-3 border-b border-border px-3 py-2 text-sm last:border-b-0 hover:bg-accent/50"
+                    >
+                      <input
+                        type="radio"
+                        name="format"
+                        checked={selectedFormatId === f.format_id}
+                        onChange={() => setSelectedFormatId(f.format_id)}
+                      />
+                      <Music className="size-3.5 shrink-0 text-muted-foreground" />
+                      <span className="w-20 shrink-0 font-medium">{f.tbr ? `${Math.round(f.tbr)}kbps` : "—"}</span>
+                      <span className="w-16 shrink-0 uppercase text-muted-foreground" title={f.acodec}>
+                        {f.ext}
+                      </span>
+                      <span className="ml-auto shrink-0 text-muted-foreground">{formatSize(f.filesize)}</span>
+                    </label>
+                  ))}
                 </div>
               )}
 
