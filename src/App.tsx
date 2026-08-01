@@ -12,6 +12,7 @@ import { LibraryPage } from "@/pages/Library";
 import { WatchPage } from "@/pages/Watch";
 import { SettingsPage } from "@/pages/Settings";
 import { LanguageProvider, useTranslation } from "@/lib/i18n/context";
+import { HomeStateProvider } from "@/lib/home-state";
 import { api } from "@/lib/api";
 import { getNotificationsEnabled } from "@/lib/settings";
 
@@ -164,28 +165,30 @@ function App() {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <NativeThemeSync />
       <LanguageProvider>
-        <DownloadNotifications />
-        <WatchNotifications />
-        <YtdlpUpdateChecker />
-        <UpdateDialog />
-        <HashRouter>
-          <NotificationNavigator />
-          <KeyboardShortcuts />
-          <div className="flex h-screen text-foreground">
-            <div data-tauri-drag-region className="fixed inset-x-0 top-0 z-30 h-11" />
-            <Sidebar />
-            <main className="flex flex-1 flex-col overflow-hidden">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/queue" element={<QueuePage />} />
-                <Route path="/library" element={<LibraryPage />} />
-                <Route path="/watch" element={<WatchPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-              </Routes>
-            </main>
-            <Toaster />
-          </div>
-        </HashRouter>
+        <HomeStateProvider>
+          <DownloadNotifications />
+          <WatchNotifications />
+          <YtdlpUpdateChecker />
+          <UpdateDialog />
+          <HashRouter>
+            <NotificationNavigator />
+            <KeyboardShortcuts />
+            <div className="flex h-screen text-foreground">
+              <div data-tauri-drag-region className="fixed inset-x-0 top-0 z-30 h-11" />
+              <Sidebar />
+              <main className="flex flex-1 flex-col overflow-hidden">
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/queue" element={<QueuePage />} />
+                  <Route path="/library" element={<LibraryPage />} />
+                  <Route path="/watch" element={<WatchPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                </Routes>
+              </main>
+              <Toaster />
+            </div>
+          </HashRouter>
+        </HomeStateProvider>
       </LanguageProvider>
     </ThemeProvider>
   );

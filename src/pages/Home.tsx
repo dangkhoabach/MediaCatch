@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from "react";
+import type { DragEvent } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { CheckCircle2, Image as ImageIcon, Loader2, Music, Video, XCircle } from "lucide-react";
@@ -11,13 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { ensureOutputDir, getEmbedMetadata, getOutputFormat } from "@/lib/settings";
 import { useTranslation } from "@/lib/i18n/context";
-import type { VideoInfo } from "@/types/download";
-
-interface BatchItem {
-  url: string;
-  status: "pending" | "working" | "done" | "error";
-  message?: string;
-}
+import { useHomeState } from "@/lib/home-state";
 
 function formatSize(bytes: number | null): string {
   if (!bytes) return "—";
@@ -74,17 +68,30 @@ function isPlaylistUrl(rawUrl: string): boolean {
 export function HomePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [info, setInfo] = useState<VideoInfo | null>(null);
-  const [platform, setPlatform] = useState<string | null>(null);
-  const [selectedFormatId, setSelectedFormatId] = useState<string | null>(null);
-  const [audioOnly, setAudioOnly] = useState(false);
-  const [starting, setStarting] = useState(false);
-  const [batchMode, setBatchMode] = useState(false);
-  const [batchText, setBatchText] = useState("");
-  const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
-  const [batchRunning, setBatchRunning] = useState(false);
+  const {
+    url,
+    setUrl,
+    loading,
+    setLoading,
+    info,
+    setInfo,
+    platform,
+    setPlatform,
+    selectedFormatId,
+    setSelectedFormatId,
+    audioOnly,
+    setAudioOnly,
+    starting,
+    setStarting,
+    batchMode,
+    setBatchMode,
+    batchText,
+    setBatchText,
+    batchItems,
+    setBatchItems,
+    batchRunning,
+    setBatchRunning,
+  } = useHomeState();
 
   async function handleExpandPlaylist(playlistUrl: string) {
     setLoading(true);
@@ -266,6 +273,27 @@ export function HomePage() {
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
+      {batchMode ? (
+        <Textarea
+          placeholder={t("home.batchPlaceholder")}
+          value={batchText}
+          onChange={(e) => setBatchText(e.target.value)}
+          className="min-h-32"
+        />
+      ) : (
+        <div className="flex gap-2">
+          <Input
+            placeholder={t("home.urlPlaceholder")}
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleFetchInfo()}
+          />
+          <Button onClick={() => handleFetchInfo()} disabled={loading || !url.trim()}>
+            {loading ? <Loader2 className="size-4 animate-spin" /> : t("home.fetchInfo")}
+          </Button>
+        </div>
+      )}
+
       <div className="flex items-center gap-2 self-end">
         <Switch
           checked={batchMode}
@@ -282,13 +310,6 @@ export function HomePage() {
 
       {batchMode ? (
         <div className="flex flex-col gap-4">
-          <Textarea
-            placeholder={t("home.batchPlaceholder")}
-            value={batchText}
-            onChange={(e) => setBatchText(e.target.value)}
-            className="min-h-32"
-          />
-
           <div className="flex items-center gap-2">
             <Switch checked={audioOnly} onCheckedChange={setAudioOnly} id="batch-audio-only" />
             <Label htmlFor="batch-audio-only" className="flex items-center gap-1.5 text-sm">
@@ -329,18 +350,6 @@ export function HomePage() {
         </div>
       ) : (
         <>
-          <div className="flex gap-2">
-            <Input
-              placeholder={t("home.urlPlaceholder")}
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleFetchInfo()}
-            />
-            <Button onClick={() => handleFetchInfo()} disabled={loading || !url.trim()}>
-              {loading ? <Loader2 className="size-4 animate-spin" /> : t("home.fetchInfo")}
-            </Button>
-          </div>
-
           {info && (
             <div className="flex flex-col gap-4">
               <div className="flex gap-3">
