@@ -18,6 +18,7 @@ export const api = {
     outputDir: string,
     outputFormat: string,
     embedMetadata: boolean,
+    audioOnly: boolean,
   ) =>
     invoke<number>("start_download", {
       url,
@@ -26,6 +27,7 @@ export const api = {
       outputDir,
       outputFormat,
       embedMetadata,
+      audioOnly,
       cookiesBrowser: cookiesBrowserArg(),
       useAria2c: getUseAria2c(),
     }),

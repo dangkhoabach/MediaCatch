@@ -174,6 +174,7 @@ pub async fn start_download(
     output_dir: String,
     output_format: String,
     embed_metadata: bool,
+    audio_only: bool,
     cookies_browser: Option<String>,
     use_aria2c: bool,
 ) -> Result<i64, String> {
@@ -232,6 +233,18 @@ pub async fn start_download(
         args.push("--embed-thumbnail".into());
         args.push("--embed-chapters".into());
         args.push("--embed-metadata".into());
+        // Thumbnail embedding only supports a fixed list of containers (mp3,
+        // mkv/mka, ogg/opus/flac, m4a/mp4/m4v/mov) — but audio-only formats
+        // commonly download as webm (e.g. YouTube's bestaudio is webm/opus),
+        // which isn't on that list and makes yt-dlp fail post-processing
+        // after the file is already downloaded. --audio-format best remuxes
+        // (no re-encode) into the correct container for whatever codec was
+        // downloaded, e.g. opus -> ogg, aac -> m4a, so embedding succeeds.
+        if audio_only {
+            args.push("-x".into());
+            args.push("--audio-format".into());
+            args.push("best".into());
+        }
         // --embed-subs alone (without --write-subs/--write-auto-subs) still
         // fetches manual + auto-generated subs and embeds them — yt-dlp just
         // downloads them to a temp .vtt and deletes it once embedded, so no

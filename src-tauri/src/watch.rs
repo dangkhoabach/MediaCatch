@@ -102,6 +102,7 @@ pub async fn poll_due_channels(app: &AppHandle) {
                 channel.output_dir.clone(),
                 channel.output_format.clone(),
                 false,
+                false,
                 None,
                 false,
             )

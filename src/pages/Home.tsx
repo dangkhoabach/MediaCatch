@@ -183,6 +183,7 @@ export function HomePage() {
         outputDir,
         outputFormat,
         getEmbedMetadata(),
+        !format.has_video && format.has_audio,
       );
       toast.success(t("home.downloadStarted"), { description: info.title });
       navigate("/queue");
@@ -227,7 +228,7 @@ export function HomePage() {
           if (!best) throw new Error(t("home.noFormatSelected"));
           selector = best.has_audio ? best.format_id : `${best.format_id}+bestaudio/best`;
         }
-        await api.startDownload(itemUrl, result.title, selector, outputDir, outputFormat, embedMetadata);
+        await api.startDownload(itemUrl, result.title, selector, outputDir, outputFormat, embedMetadata, audioOnly);
         successCount++;
         setBatchItems((prev) =>
           prev.map((item, idx) => (idx === i ? { ...item, status: "done", message: result.title } : item)),
