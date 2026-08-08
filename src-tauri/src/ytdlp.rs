@@ -82,12 +82,13 @@ fn ffmpeg_location() -> Option<String> {
 #[tauri::command]
 pub async fn fetch_video_info(
     app: AppHandle,
+    state: State<'_, AppState>,
     url: String,
     cookies_browser: Option<String>,
 ) -> Result<VideoInfo, String> {
     let mut args: Vec<String> = vec!["-j".into(), "--no-playlist".into(), "--no-warnings".into()];
     push_cookies_arg(&mut args, &cookies_browser);
-    args.push(url);
+    args.push(url.clone());
 
     let output = ytdlp_command(&app)
         .args(&args)
@@ -100,7 +101,32 @@ pub async fn fetch_video_info(
     }
 
     let info: YtDlpInfo = serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())?;
+    // Best-effort — a successful fetch shouldn't fail just because history
+    // bookkeeping did (e.g. a momentarily locked db).
+    if let Ok(conn) = state.db.lock() {
+        let _ = db::upsert_url_history(&conn, &url, &info.title);
+    }
     Ok(info.into())
+}
+
+/// Most recently fetched/downloaded links, most recent first — powers the
+/// "Recent links" tab in the Library page.
+#[tauri::command]
+pub fn list_url_history(state: State<'_, AppState>) -> Result<Vec<crate::models::UrlHistoryEntry>, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    db::list_url_history(&conn, 200).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn delete_url_history_entry(state: State<'_, AppState>, id: i64) -> Result<(), String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    db::delete_url_history_entry(&conn, id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn clear_url_history(state: State<'_, AppState>) -> Result<(), String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    db::clear_url_history(&conn).map_err(|e| e.to_string())
 }
 
 /// Reads cookies straight from an installed browser's own cookie store

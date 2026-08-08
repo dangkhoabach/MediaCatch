@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { DownloadRecord, PlaylistEntry, VideoInfo, WatchedChannel } from "@/types/download";
+import type { DownloadRecord, PlaylistEntry, UrlHistoryEntry, VideoInfo, WatchedChannel } from "@/types/download";
 import { getCookiesBrowser, getUseAria2c } from "@/lib/settings";
 
 /** `"none"` means "don't read any browser's cookies" — omit the arg entirely rather than send the literal string. */
@@ -46,4 +46,7 @@ export const api = {
   removeWatchedChannel: (id: number) => invoke<void>("remove_watched_channel", { id }),
   setWatchedChannelEnabled: (id: number, enabled: boolean) =>
     invoke<void>("set_watched_channel_enabled", { id, enabled }),
+  listUrlHistory: () => invoke<UrlHistoryEntry[]>("list_url_history"),
+  deleteUrlHistoryEntry: (id: number) => invoke<void>("delete_url_history_entry", { id }),
+  clearUrlHistory: () => invoke<void>("clear_url_history"),
 };

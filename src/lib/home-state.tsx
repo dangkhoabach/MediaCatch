@@ -30,6 +30,11 @@ interface HomeStateValue {
   setBatchItems: Dispatch<SetStateAction<BatchItem[]>>;
   batchRunning: boolean;
   setBatchRunning: Dispatch<SetStateAction<boolean>>;
+  /** Set by another page (e.g. Library's "Recent links" tab) to ask Home to
+   *  re-fetch a URL as soon as it's mounted/visible — Home clears it once
+   *  handled. */
+  pendingFetchUrl: string | null;
+  setPendingFetchUrl: Dispatch<SetStateAction<string | null>>;
 }
 
 const HomeStateContext = createContext<HomeStateValue | null>(null);
@@ -52,6 +57,7 @@ export function HomeStateProvider({ children }: { children: ReactNode }) {
   const [batchText, setBatchText] = useState("");
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
   const [batchRunning, setBatchRunning] = useState(false);
+  const [pendingFetchUrl, setPendingFetchUrl] = useState<string | null>(null);
 
   const value: HomeStateValue = {
     url,
@@ -76,6 +82,8 @@ export function HomeStateProvider({ children }: { children: ReactNode }) {
     setBatchItems,
     batchRunning,
     setBatchRunning,
+    pendingFetchUrl,
+    setPendingFetchUrl,
   };
 
   return <HomeStateContext.Provider value={value}>{children}</HomeStateContext.Provider>;

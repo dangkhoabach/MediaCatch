@@ -55,3 +55,11 @@ export interface PlaylistEntry {
   title: string;
   url: string;
 }
+
+export interface UrlHistoryEntry {
+  id: number;
+  url: string;
+  title: string;
+  fetch_count: number;
+  last_fetched_at: string;
+}

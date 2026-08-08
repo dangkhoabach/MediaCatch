@@ -1,4 +1,5 @@
 import type { DragEvent } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { CheckCircle2, Image as ImageIcon, Loader2, Music, Video, XCircle } from "lucide-react";
@@ -91,6 +92,8 @@ export function HomePage() {
     setBatchItems,
     batchRunning,
     setBatchRunning,
+    pendingFetchUrl,
+    setPendingFetchUrl,
   } = useHomeState();
 
   async function handleExpandPlaylist(playlistUrl: string) {
@@ -143,6 +146,18 @@ export function HomePage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!pendingFetchUrl) return;
+    setBatchMode(false);
+    setUrl(pendingFetchUrl);
+    handleFetchInfo(pendingFetchUrl);
+    setPendingFetchUrl(null);
+    // handleFetchInfo intentionally omitted — it's stable across renders in
+    // practice (only closes over home-state setters) and including it would
+    // re-run this on every fetch, not just when a re-fetch is requested.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingFetchUrl]);
 
   function handleAudioOnlyToggle(checked: boolean) {
     setAudioOnly(checked);
@@ -274,6 +289,20 @@ export function HomePage() {
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
+      <div className="flex items-center gap-2 self-end">
+        <Switch
+          checked={batchMode}
+          onCheckedChange={(checked) => {
+            setBatchMode(checked);
+            setBatchItems([]);
+          }}
+          id="batch-mode"
+        />
+        <Label htmlFor="batch-mode" className="text-sm text-muted-foreground">
+          {t("home.batchMode")}
+        </Label>
+      </div>
+
       {batchMode ? (
         <Textarea
           placeholder={t("home.batchPlaceholder")}
@@ -294,20 +323,6 @@ export function HomePage() {
           </Button>
         </div>
       )}
-
-      <div className="flex items-center gap-2 self-end">
-        <Switch
-          checked={batchMode}
-          onCheckedChange={(checked) => {
-            setBatchMode(checked);
-            setBatchItems([]);
-          }}
-          id="batch-mode"
-        />
-        <Label htmlFor="batch-mode" className="text-sm text-muted-foreground">
-          {t("home.batchMode")}
-        </Label>
-      </div>
 
       {batchMode ? (
         <div className="flex flex-col gap-4">
@@ -399,6 +414,10 @@ export function HomePage() {
                 </div>
               )}
 
+              {!audioOnly && videoFormats.some((f) => !f.has_audio) && (
+                <p className="text-xs text-muted-foreground">{t("home.audioMergeNote")}</p>
+              )}
+
               {!audioOnly && videoFormats.length > 0 && (
                 <div className="flex flex-col overflow-hidden rounded-lg border border-border">
                   {videoFormats.map((f) => (
@@ -430,10 +449,6 @@ export function HomePage() {
                 </div>
               )}
 
-              {!audioOnly && videoFormats.some((f) => !f.has_audio) && (
-                <p className="text-xs text-muted-foreground">{t("home.audioMergeNote")}</p>
-              )}
-
               {videoFormats.length === 0 && imageFormats.length > 0 && (
                 <div className="flex flex-col overflow-hidden rounded-lg border border-border">
                   {imageFormats.map((f) => (
@@ -455,7 +470,7 @@ export function HomePage() {
                 </div>
               )}
 
-              <Button onClick={handleDownload} disabled={starting} className="self-start">
+              <Button onClick={handleDownload} disabled={starting} className="self-end">
                 {starting ? <Loader2 className="size-4 animate-spin" /> : t("home.download")}
               </Button>
             </div>

@@ -116,6 +116,15 @@ pub struct DownloadRecord {
 }
 
 #[derive(Serialize)]
+pub struct UrlHistoryEntry {
+    pub id: i64,
+    pub url: String,
+    pub title: String,
+    pub fetch_count: i64,
+    pub last_fetched_at: String,
+}
+
+#[derive(Serialize)]
 pub struct WatchedChannel {
     pub id: i64,
     pub url: String,

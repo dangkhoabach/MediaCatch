@@ -1,4 +1,4 @@
-use crate::models::{DownloadRecord, WatchedChannel};
+use crate::models::{DownloadRecord, UrlHistoryEntry, WatchedChannel};
 use rusqlite::{Connection, OptionalExtension};
 use std::path::Path;
 
@@ -34,6 +34,14 @@ pub fn init_db(path: &Path) -> rusqlite::Result<Connection> {
             channel_id INTEGER NOT NULL,
             video_id TEXT NOT NULL,
             PRIMARY KEY (channel_id, video_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS url_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            url TEXT NOT NULL UNIQUE,
+            title TEXT NOT NULL,
+            fetch_count INTEGER NOT NULL DEFAULT 1,
+            last_fetched_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
         ",
     )?;
@@ -206,5 +214,48 @@ pub fn mark_video_known(conn: &Connection, channel_id: i64, video_id: &str) -> r
         "INSERT OR IGNORE INTO watched_channel_videos (channel_id, video_id) VALUES (?1, ?2)",
         (channel_id, video_id),
     )?;
+    Ok(())
+}
+
+/// Records a successful `fetch_video_info` call — one row per distinct URL,
+/// bumping `fetch_count`/`last_fetched_at` on repeat fetches instead of
+/// growing unbounded, so the same link fetched many times still shows up
+/// once, most-recent-first.
+pub fn upsert_url_history(conn: &Connection, url: &str, title: &str) -> rusqlite::Result<()> {
+    conn.execute(
+        "INSERT INTO url_history (url, title) VALUES (?1, ?2)
+         ON CONFLICT(url) DO UPDATE SET
+            title = excluded.title,
+            fetch_count = fetch_count + 1,
+            last_fetched_at = datetime('now')",
+        (url, title),
+    )?;
+    Ok(())
+}
+
+pub fn list_url_history(conn: &Connection, limit: u32) -> rusqlite::Result<Vec<UrlHistoryEntry>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, url, title, fetch_count, last_fetched_at
+         FROM url_history ORDER BY last_fetched_at DESC LIMIT ?1",
+    )?;
+    let rows = stmt.query_map([limit], |row| {
+        Ok(UrlHistoryEntry {
+            id: row.get(0)?,
+            url: row.get(1)?,
+            title: row.get(2)?,
+            fetch_count: row.get(3)?,
+            last_fetched_at: row.get(4)?,
+        })
+    })?;
+    rows.collect()
+}
+
+pub fn delete_url_history_entry(conn: &Connection, id: i64) -> rusqlite::Result<()> {
+    conn.execute("DELETE FROM url_history WHERE id = ?1", [id])?;
+    Ok(())
+}
+
+pub fn clear_url_history(conn: &Connection) -> rusqlite::Result<()> {
+    conn.execute("DELETE FROM url_history", [])?;
     Ok(())
 }
