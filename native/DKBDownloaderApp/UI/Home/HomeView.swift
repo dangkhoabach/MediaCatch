@@ -177,37 +177,73 @@ struct HomeView: View {
         }
     }
 
-    /// A real `Table` — genuine NSTableView-backed columns with headers,
-    /// not a hand-spaced `HStack` — selecting a row highlights the whole
-    /// row the same way Finder's list view does, which is what actually
-    /// communicates "this one's picked" in a table, no extra checkmark/
-    /// radio glyph needed.
+    /// Hand-built rows, not a SwiftUI `Table` — a real `Table` always draws
+    /// its own header row, and the reference screenshot from the old Tauri
+    /// app has no header at all: just a radio dot, icon, and columns lined
+    /// up with fixed-width frames, thin dividers between rows, and a single
+    /// rounded card around the whole thing. That look isn't reachable with
+    /// `Table`'s public API, so this reproduces it directly.
     private func formatTable(_ formats: [VideoFormat], icon: String) -> some View {
-        Table(formats, selection: Binding(
-            get: { viewModel.selectedFormatId },
-            set: { if let newValue = $0 { viewModel.selectedFormatId = newValue } }
-        )) {
-            TableColumn(t("home.format.quality")) { format in
-                Label(qualityLabel(format), systemImage: icon)
-            }
-            TableColumn(t("home.format.codec")) { format in
-                Text(codecLabel(format)).foregroundStyle(.secondary)
-            }
-            TableColumn(t("home.format.audio")) { format in
-                Text(format.hasAudio ? t("home.hasAudio") : t("home.noAudio")).foregroundStyle(.secondary)
-            }
-            TableColumn(t("home.format.size")) { format in
-                Text(formatSize(format.filesize)).foregroundStyle(.secondary)
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(Array(formats.enumerated()), id: \.element.id) { index, format in
+                    formatRow(format, icon: icon, isEven: index.isMultiple(of: 2))
+                    if index < formats.count - 1 {
+                        Divider().opacity(0.5)
+                    }
+                }
             }
         }
-        // Zebra striping so adjacent rows are distinguishable at a glance
-        // (the default inset style renders every unselected row the same
-        // shade), plus a rounded frame so the table reads as its own
-        // bounded panel instead of bleeding into the page around it.
-        .tableStyle(.inset(alternatesRowBackgrounds: true))
-        .frame(height: min(CGFloat(formats.count) * 28 + 30, 280))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+        .frame(height: min(CGFloat(formats.count) * 44 + 2, 320))
+        .background(Color.black.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator))
+    }
+
+    private func formatRow(_ format: VideoFormat, icon: String, isEven: Bool) -> some View {
+        Button {
+            viewModel.selectedFormatId = format.id
+        } label: {
+            HStack(spacing: 14) {
+                radioIndicator(selected: format.id == viewModel.selectedFormatId)
+                Image(systemName: icon).foregroundStyle(.secondary).frame(width: 16)
+                Text(qualityLabel(format))
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 64, alignment: .leading)
+                Text(format.fps.map { "\(Int($0))fps" } ?? "—")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 56, alignment: .leading)
+                Text(codecLabel(format))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 90, alignment: .leading)
+                Text(format.hasAudio ? t("home.hasAudio") : t("home.noAudio"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 90, alignment: .leading)
+                Spacer(minLength: 0)
+                Text(formatSize(format.filesize))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 13)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(isEven ? Color.clear : Color.white.opacity(0.03))
+    }
+
+    private func radioIndicator(selected: Bool) -> some View {
+        ZStack {
+            Circle()
+                .strokeBorder(selected ? Color.accentColor : Color.secondary.opacity(0.6), lineWidth: 1.5)
+                .frame(width: 14, height: 14)
+            if selected {
+                Circle().fill(Color.accentColor).frame(width: 7, height: 7)
+            }
+        }
     }
 
     private func qualityLabel(_ format: VideoFormat) -> String {
@@ -225,7 +261,13 @@ struct HomeView: View {
     private var batchSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             ZStack(alignment: .topLeading) {
+                // A bare `TextEditor` has no top inset of its own — the
+                // caret (and first line typed) sits flush against the box's
+                // top edge with no breathing room. `.padding(.top, 8)` here
+                // gives it the same clearance the placeholder below already
+                // has, instead of only inset-ing the placeholder.
                 TextEditor(text: $viewModel.batchText)
+                    .padding(.top, 8)
                 if viewModel.batchText.isEmpty {
                     Text(t("home.batchPlaceholder"))
                         .foregroundStyle(.secondary)
