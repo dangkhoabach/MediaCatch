@@ -7,10 +7,21 @@ import Foundation
 /// `native/` code (Mục 1.5 in docs/swift-native-port-plan.md).
 enum AppDatabaseLocation {
     static func productionPath() -> URL {
+        appDataDirectory().appendingPathComponent("dkb-downloader.db")
+    }
+
+    /// Where `YtdlpUpdater` writes a self-updated yt-dlp copy — mirrors
+    /// `ytdlp.rs::ytdlp_command`'s `app_data_dir().join("bin")`, checked
+    /// first (Phase 8's `AppServices`) ahead of the bundled sidecar seed.
+    static func binDirectory() -> URL {
+        appDataDirectory().appendingPathComponent("bin", isDirectory: true)
+    }
+
+    private static func appDataDirectory() -> URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let bundleID = Bundle.main.bundleIdentifier ?? "com.dangkhoabach.dkb-downloader"
         let dir = base.appendingPathComponent(bundleID, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("dkb-downloader.db")
+        return dir
     }
 }

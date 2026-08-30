@@ -54,3 +54,37 @@ targets:
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.dangkhoabach.dkb-downloader
       PRODUCT_NAME: "DKB Downloader"
+    postbuildScripts:
+      # D12: bundle the existing yt-dlp/ffmpeg sidecar binaries as-is into
+      # Contents/Resources/bin — no rebuild/re-download. Both are fetched by
+      # scripts/fetch-sidecars.sh into src-tauri/binaries/, gitignored there
+      # (large, self-updating) so a fresh CI checkout won't have them; this
+      # script skips (with a warning) rather than failing the build when
+      # they're absent — native-ci.yml only needs the app to compile/link,
+      # not to actually run downloads.
+      - name: "Bundle yt-dlp/ffmpeg sidecar binaries"
+        basedOnDependencyAnalysis: false
+        script: |
+          set -euo pipefail
+          BINARIES_DIR="${SRCROOT}/../src-tauri/binaries"
+          DEST="${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/bin"
+          mkdir -p "$DEST"
+
+          # yt-dlp_macos is already a universal (arm64+x86_64) binary —
+          # fetch-sidecars.sh just copies it under both target-triple names
+          # for Tauri's sidecar convention, so either copy is identical.
+          if [ -f "$BINARIES_DIR/yt-dlp-aarch64-apple-darwin" ]; then
+            cp "$BINARIES_DIR/yt-dlp-aarch64-apple-darwin" "$DEST/yt-dlp"
+            chmod +x "$DEST/yt-dlp"
+          else
+            echo "warning: yt-dlp sidecar not found at $BINARIES_DIR — run scripts/fetch-sidecars.sh (skipping bundle)"
+          fi
+
+          # evermeet.cx only publishes x86_64 ffmpeg — runs fine via Rosetta
+          # 2 on Apple Silicon, same file under both target-triple names.
+          if [ -f "$BINARIES_DIR/ffmpeg-x86_64-apple-darwin" ]; then
+            cp "$BINARIES_DIR/ffmpeg-x86_64-apple-darwin" "$DEST/ffmpeg"
+            chmod +x "$DEST/ffmpeg"
+          else
+            echo "warning: ffmpeg sidecar not found at $BINARIES_DIR — run scripts/fetch-sidecars.sh (skipping bundle)"
+          fi
