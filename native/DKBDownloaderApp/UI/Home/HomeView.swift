@@ -65,7 +65,12 @@ struct HomeView: View {
         HStack {
             TextField(t("home.urlPlaceholder"), text: $viewModel.url)
                 .textFieldStyle(.roundedBorder)
+                .controlSize(.large)
                 .onSubmit { Task { await viewModel.fetchInfo() } }
+            // `.borderedProminent` + `.defaultAction` — the standard macOS
+            // treatment for a screen's one primary action (same tint/weight
+            // as a dialog's default "OK" button), so it doesn't read as a
+            // plain, secondary control next to the text field.
             Button {
                 Task { await viewModel.fetchInfo() }
             } label: {
@@ -75,6 +80,8 @@ struct HomeView: View {
                     Text(t("home.fetchInfo"))
                 }
             }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
             .disabled(viewModel.loading || viewModel.url.trimmingCharacters(in: .whitespaces).isEmpty)
         }
     }
@@ -163,6 +170,8 @@ struct HomeView: View {
                         Text(t("home.download"))
                     }
                 }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
                 .disabled(viewModel.starting || viewModel.selectedFormatId == nil)
             }
         }
@@ -225,10 +234,14 @@ struct HomeView: View {
                         Text(t("home.batchSubmit"))
                     }
                 }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
                 .disabled(viewModel.batchRunning || viewModel.batchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 if !viewModel.batchRunning, !viewModel.batchItems.isEmpty {
                     Button(t("nav.queue")) { AppNavigationState.shared.selectedSection = .queue }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
                 }
             }
 

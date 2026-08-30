@@ -9,6 +9,7 @@ struct WatchView: View {
             HStack {
                 TextField(t("watch.urlPlaceholder"), text: $viewModel.url)
                     .textFieldStyle(.roundedBorder)
+                    .controlSize(.large)
                     .onSubmit { Task { await viewModel.add() } }
                 Button {
                     Task { await viewModel.add() }
@@ -19,6 +20,8 @@ struct WatchView: View {
                         Text(t("watch.add"))
                     }
                 }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
                 .disabled(viewModel.adding || viewModel.url.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding()
