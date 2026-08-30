@@ -1,0 +1,33 @@
+name: DKBDownloaderNative
+options:
+  deploymentTarget:
+    macOS: "14.0"
+  developmentLanguage: en
+settings:
+  MACOSX_DEPLOYMENT_TARGET: "14.0"
+  SWIFT_VERSION: "6.0"
+  CODE_SIGN_STYLE: Automatic
+  ENABLE_HARDENED_RUNTIME: NO
+packages:
+  DKBDownloaderCore:
+    path: DKBDownloaderCore
+targets:
+  DKBDownloaderApp:
+    type: application
+    platform: macOS
+    sources:
+      - DKBDownloaderApp
+    dependencies:
+      - package: DKBDownloaderCore
+    info:
+      path: DKBDownloaderApp/Info.plist
+      properties:
+        LSUIElement: false
+    entitlements:
+      path: DKBDownloaderApp/DKBDownloaderApp.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+        com.apple.security.network.client: true
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.dangkhoabach.dkb-downloader
+      PRODUCT_NAME: "DKB Downloader"
