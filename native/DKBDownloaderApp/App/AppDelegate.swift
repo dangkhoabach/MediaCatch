@@ -5,6 +5,10 @@ import AppKit
 /// already-proven native/ code): keep running after the last window closes,
 /// and reopen on Dock click.
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        MenuBarStatsViewModel.shared.start()
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }

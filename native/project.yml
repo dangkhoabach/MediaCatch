@@ -11,6 +11,9 @@ settings:
 packages:
   DKBDownloaderCore:
     path: DKBDownloaderCore
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.6.4"
 targets:
   DKBDownloaderApp:
     type: application
@@ -19,10 +22,30 @@ targets:
       - DKBDownloaderApp
     dependencies:
       - package: DKBDownloaderCore
+      - package: Sparkle
     info:
       path: DKBDownloaderApp/Info.plist
       properties:
         LSUIElement: false
+        # Sparkle (Phase 7). SUPublicEDKey is a placeholder until a real
+        # EdDSA keypair is generated (see .github/workflows/native-release.yml's
+        # header comment for the exact one-time steps) — private half goes
+        # into the SPARKLE_ED_PRIVATE_KEY GitHub Actions secret, never here.
+        # SUFeedURL points at GitHub Releases: admin.dangkhoabach.vn (the
+        # Tauri updater's current endpoint) has no upload API, only a manual
+        # web UI (confirmed for DKB-Monitor, same release/README.md process
+        # this app already uses) — GitHub Releases is fully automated
+        # end-to-end by native-release.yml instead.
+        SUFeedURL: https://github.com/dangkhoabach/DKB-Downloader/releases/latest/download/appcast.xml
+        SUPublicEDKey: REPLACE_WITH_GENERATED_ED25519_PUBLIC_KEY
+        # Stays off until the real keypair above is in place and at least
+        # one release exists — otherwise Sparkle fails every automatic check
+        # (no valid feed to reach) and pops an "Unable to Check For Updates"
+        # alert on every single launch (bug hit and fixed the same way in
+        # DKB Monitor's Phase 10). "Check for Updates…" in the menu bar
+        # still works manually in the meantime.
+        SUEnableAutomaticChecks: false
+        SUScheduledCheckInterval: 86400
     entitlements:
       path: DKBDownloaderApp/DKBDownloaderApp.entitlements
       properties:

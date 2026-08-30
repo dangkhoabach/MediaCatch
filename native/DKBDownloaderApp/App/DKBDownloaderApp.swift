@@ -11,14 +11,19 @@ struct DKBDownloaderApp: App {
             ContentView()
                 .background(WindowAccessor(delegate: windowDelegate))
         }
-
-        // Real "Downloads: N" content + Show/Quit lands in Phase 6 — this is
-        // just enough to confirm MenuBarExtra coexists with WindowGroup and
-        // the app doesn't crash.
-        MenuBarExtra("DKB Downloader", systemImage: "arrow.down.circle") {
-            Button("Quit") {
-                NSApp.terminate(nil)
+        .commands {
+            // Standard Sparkle placement: right under "About DKB Downloader"
+            // in the app menu — matches lib.rs's Help-menu "Check for
+            // Updates…" item in spirit, in the idiomatic macOS location.
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") {
+                    AppUpdater.checkForUpdates()
+                }
             }
+        }
+
+        MenuBarExtra("DKB Downloader", image: "TrayIcon") {
+            MenuBarContentView()
         }
     }
 }
