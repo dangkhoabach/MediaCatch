@@ -45,12 +45,29 @@ struct LibraryView: View {
                     Text(t("library.tabRecent")).tag(LibraryViewModel.Tab.recent)
                 }
                 .pickerStyle(.segmented)
+            }
 
-                if viewModel.tab == .recent {
+            // Without this, macOS 26's Liquid Glass toolbar fuses the
+            // segmented Picker above with the search field/Clear button
+            // below into one shared glass container even though they're
+            // separate `ToolbarItemGroup`s — the same merging DKB Monitor
+            // documented and worked around with this exact API.
+            if #available(macOS 26.0, *) {
+                ToolbarSpacer(.fixed, placement: .automatic)
+            }
+
+            if viewModel.tab == .recent {
+                ToolbarItemGroup(placement: .automatic) {
                     NativeSearchField(text: $viewModel.recentSearch, placeholder: t("library.recentSearchPlaceholder"))
                         .frame(width: 200)
                     if !viewModel.recentLinks.isEmpty {
-                        Button(t("library.recentClear")) { viewModel.clearRecent() }
+                        // Still a plain, unstyled `Button` — its native pill
+                        // chrome comes from the system, not from us — just
+                        // padding the label text itself so a short word like
+                        // "Clear all" isn't cramped against the pill's edges.
+                        Button { viewModel.clearRecent() } label: {
+                            Text(t("library.recentClear")).padding(.horizontal, 4)
+                        }
                     }
                 }
             }
