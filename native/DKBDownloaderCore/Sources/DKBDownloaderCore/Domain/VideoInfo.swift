@@ -31,7 +31,8 @@ struct YtDlpFormat: Decodable {
     }
 }
 
-public struct VideoFormat: Sendable, Equatable {
+public struct VideoFormat: Sendable, Equatable, Identifiable {
+    public var id: String { formatId }
     public let formatId: String
     public let ext: String
     public let height: Int?

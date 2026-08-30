@@ -94,12 +94,17 @@ struct HomeView: View {
         let audioFormats = info.formats.filter { $0.hasAudio && !$0.hasVideo }
             .sorted { ($0.tbr ?? 0) > ($1.tbr ?? 0) }
 
-        VStack(alignment: .leading, spacing: 12) {
-            // `GroupBox` (not a hand-drawn container) so this picks up the
-            // system's automatic card material — Liquid Glass on macOS 26+
-            // — with no styling of our own, same pattern as DKB Monitor's
-            // stat cards.
-            GroupBox {
+        VStack(alignment: .leading, spacing: 20) {
+            // An explicit `.regularMaterial` fill (still a system material,
+            // not a hand-painted color — Liquid Glass on macOS 26+ applies
+            // to it the same as any other system surface) instead of a bare
+            // `GroupBox`: GroupBox's own automatic border reads as
+            // essentially invisible against this app's dark background,
+            // leaving the thumbnail/title looking like it's floating with
+            // no card at all. The audio-only toggle now lives in the same
+            // card (below a `Divider`) instead of sitting alone in its own
+            // unbounded row.
+            VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top, spacing: 12) {
                     if let thumbnail = info.thumbnail, let thumbnailURL = URL(string: thumbnail) {
                         AsyncImage(url: thumbnailURL) { image in
@@ -125,38 +130,28 @@ struct HomeView: View {
                     }
                     Spacer(minLength: 0)
                 }
-                .padding(6)
-            }
 
-            if !videoFormats.isEmpty {
-                Toggle(isOn: Binding(get: { viewModel.audioOnly }, set: { viewModel.setAudioOnly($0) })) {
-                    Label(t("home.audioOnly"), systemImage: "music.note")
+                if !videoFormats.isEmpty {
+                    Divider()
+                    Toggle(isOn: Binding(get: { viewModel.audioOnly }, set: { viewModel.setAudioOnly($0) })) {
+                        Label(t("home.audioOnly"), systemImage: "music.note")
+                    }
+                    .toggleStyle(.switch)
                 }
-                .toggleStyle(.switch)
             }
+            .padding(12)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
 
             if viewModel.audioOnly, !audioFormats.isEmpty {
-                formatList(audioFormats) { format in
-                    formatRowLabel(icon: "music.note", primary: format.tbr.map { "\(Int($0))kbps" } ?? "—", secondary: format.ext.uppercased(), size: format.filesize)
-                }
+                formatTable(audioFormats, icon: "music.note")
             }
 
             if !viewModel.audioOnly, !videoFormats.isEmpty {
-                formatList(videoFormats) { format in
-                    formatRowLabel(
-                        icon: "video",
-                        primary: format.height.map { "\($0)p" } ?? "—",
-                        secondary: format.vcodec,
-                        size: format.filesize,
-                        trailing: format.hasAudio ? t("home.hasAudio") : t("home.noAudio")
-                    )
-                }
+                formatTable(videoFormats, icon: "video")
             }
 
             if videoFormats.isEmpty, !imageFormats.isEmpty {
-                formatList(imageFormats) { format in
-                    formatRowLabel(icon: "photo", primary: format.ext.uppercased(), secondary: nil, size: format.filesize)
-                }
+                formatTable(imageFormats, icon: "photo")
             }
 
             HStack {
@@ -177,32 +172,49 @@ struct HomeView: View {
         }
     }
 
-    /// A real `Picker` in `.inline` style (not hand-rolled selectable
-    /// `Button` rows) — renders as a native list with a system checkmark
-    /// next to the selected row, same idiom System Settings uses for
-    /// "pick one of these" lists, and gets the right materials for free.
-    private func formatList(_ formats: [VideoFormat], @ViewBuilder row: @escaping (VideoFormat) -> some View) -> some View {
-        Picker("", selection: Binding(
+    /// A real `Table` — genuine NSTableView-backed columns with headers,
+    /// not a hand-spaced `HStack` — selecting a row highlights the whole
+    /// row the same way Finder's list view does, which is what actually
+    /// communicates "this one's picked" in a table, no extra checkmark/
+    /// radio glyph needed.
+    private func formatTable(_ formats: [VideoFormat], icon: String) -> some View {
+        Table(formats, selection: Binding(
             get: { viewModel.selectedFormatId },
-            set: { viewModel.selectedFormatId = $0 }
+            set: { if let newValue = $0 { viewModel.selectedFormatId = newValue } }
         )) {
-            ForEach(formats, id: \.formatId) { format in
-                row(format).tag(Optional(format.formatId))
+            TableColumn(t("home.format.quality")) { format in
+                Label(qualityLabel(format), systemImage: icon)
+            }
+            TableColumn(t("home.format.codec")) { format in
+                Text(codecLabel(format)).foregroundStyle(.secondary)
+            }
+            TableColumn(t("home.format.audio")) { format in
+                Text(format.hasAudio ? t("home.hasAudio") : t("home.noAudio")).foregroundStyle(.secondary)
+            }
+            TableColumn(t("home.format.size")) { format in
+                Text(formatSize(format.filesize)).foregroundStyle(.secondary)
             }
         }
-        .pickerStyle(.inline)
-        .labelsHidden()
+        // Zebra striping so adjacent rows are distinguishable at a glance
+        // (the default inset style renders every unselected row the same
+        // shade), plus a rounded frame so the table reads as its own
+        // bounded panel instead of bleeding into the page around it.
+        .tableStyle(.inset(alternatesRowBackgrounds: true))
+        .frame(height: min(CGFloat(formats.count) * 28 + 30, 280))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
     }
 
-    private func formatRowLabel(icon: String, primary: String, secondary: String?, size: Int64?, trailing: String? = nil) -> some View {
-        HStack {
-            Image(systemName: icon).foregroundStyle(.secondary)
-            Text(primary).frame(width: 70, alignment: .leading)
-            if let secondary { Text(secondary).foregroundStyle(.secondary).frame(width: 100, alignment: .leading) }
-            if let trailing { Text(trailing).foregroundStyle(.secondary) }
-            Spacer()
-            Text(formatSize(size)).foregroundStyle(.secondary)
-        }
+    private func qualityLabel(_ format: VideoFormat) -> String {
+        if let height = format.height { return "\(height)p" }
+        if let tbr = format.tbr { return "\(Int(tbr))kbps" }
+        return format.ext.uppercased()
+    }
+
+    private func codecLabel(_ format: VideoFormat) -> String {
+        if format.hasVideo { return format.vcodec }
+        if format.hasAudio { return format.acodec }
+        return format.ext.uppercased()
     }
 
     private var batchSection: some View {
