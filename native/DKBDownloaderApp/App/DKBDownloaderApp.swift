@@ -32,7 +32,7 @@ struct DKBDownloaderApp: App {
             }
         }
 
-        MenuBarExtra("DKB Downloader", image: "TrayIcon") {
+        MenuBarExtra("DKB Downloader", systemImage: "arrow.down.circle") {
             MenuBarContentView()
         }
 
