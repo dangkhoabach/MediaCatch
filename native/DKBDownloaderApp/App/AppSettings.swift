@@ -15,6 +15,7 @@ enum AppSettings {
         static let embedMetadata = "dkb-downloader:embedMetadata"
         static let cookiesBrowser = "dkb-downloader:cookiesBrowser"
         static let useAria2c = "dkb-downloader:useAria2c"
+        static let notificationsEnabled = "dkb-downloader:notificationsEnabled"
     }
 
     /// Falls back to the OS Downloads folder and persists it the first time
@@ -47,5 +48,11 @@ enum AppSettings {
     /// Off by default — requires the user to have aria2c installed separately.
     static func useAria2c() -> Bool {
         defaults.bool(forKey: Keys.useAria2c)
+    }
+
+    /// On by default (mirrors `settings.ts::getNotificationsEnabled`'s
+    /// `!== "false"` — absent means "on", not "off" like `Bool`'s zero value).
+    static func notificationsEnabled() -> Bool {
+        defaults.object(forKey: Keys.notificationsEnabled) == nil ? true : defaults.bool(forKey: Keys.notificationsEnabled)
     }
 }

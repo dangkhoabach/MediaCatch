@@ -1,11 +1,9 @@
 import DKBDownloaderCore
 import Foundation
 
-/// Minimal composition root: resolves the real sidecar binary paths and
-/// wires up the Core types that need them. Kept intentionally small — just
-/// what Home (Phase 8) needs to fetch/download for real. `ChannelWatcher`
-/// (Watch, Phase 9) and notification-event wiring are added when those
-/// phases need them, not preemptively here.
+/// Composition root: resolves the real sidecar binary paths and wires up
+/// every Core type that needs them, shared by Home (Phase 8) and
+/// Queue/Library/Watch (Phase 9).
 enum AppServices {
     static let ytdlpURL = resolvedBinaryURL(name: "yt-dlp")
     static let ffmpegURL = resolvedBinaryURL(name: "ffmpeg")
@@ -14,9 +12,14 @@ enum AppServices {
 
     static let downloadRepo = DownloadRepository(dbQueue: AppDatabase.shared!.dbQueue)
     static let urlHistoryRepo = UrlHistoryRepository(dbQueue: AppDatabase.shared!.dbQueue)
+    static let watchedChannelRepo = WatchedChannelRepository(dbQueue: AppDatabase.shared!.dbQueue)
 
     static let downloadManager = DownloadManager(
         ytdlpURL: ytdlpURL, ffmpegURL: ffmpegURL, downloadRepo: downloadRepo
+    )
+
+    static let channelWatcher = ChannelWatcher(
+        playlistDumper: ytdlpClient, channelRepo: watchedChannelRepo, downloadStarter: downloadManager
     )
 
     /// Prefers a copy previously fetched by `YtdlpUpdater` into

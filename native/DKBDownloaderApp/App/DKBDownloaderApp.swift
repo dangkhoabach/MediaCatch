@@ -4,11 +4,21 @@ import SwiftUI
 @main
 struct DKBDownloaderApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @AppStorage("dkb-downloader:theme") private var theme = "system"
     private let windowDelegate = HideInsteadOfCloseDelegate()
+
+    private var colorScheme: ColorScheme? {
+        switch theme {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
+    }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .preferredColorScheme(colorScheme)
                 .background(WindowAccessor(delegate: windowDelegate))
         }
         .commands {
@@ -24,6 +34,10 @@ struct DKBDownloaderApp: App {
 
         MenuBarExtra("DKB Downloader", image: "TrayIcon") {
             MenuBarContentView()
+        }
+
+        Settings {
+            SettingsView()
         }
     }
 }

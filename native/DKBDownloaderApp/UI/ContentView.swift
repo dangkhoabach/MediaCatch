@@ -1,8 +1,7 @@
 import SwiftUI
 
-/// Sidebar shell (Phase 8) — Home has real content; Queue/Library/Watch are
-/// placeholders until Phase 9 builds them, matching the same pattern this
-/// file itself used as a whole-window placeholder through Phase 1-7.
+/// Sidebar shell — Home (Phase 8) + Queue/Library/Watch (Phase 9). Settings
+/// lives in its own `Settings {}` scene (Cmd+,), not in the sidebar.
 struct ContentView: View {
     @Bindable private var navigation = AppNavigationState.shared
 
@@ -17,11 +16,11 @@ struct ContentView: View {
             case .home:
                 HomeView()
             case .queue:
-                Text("Queue — coming in Phase 9").foregroundStyle(.secondary)
+                QueueView()
             case .library:
-                Text("Library — coming in Phase 9").foregroundStyle(.secondary)
+                LibraryView()
             case .watch:
-                Text("Watch — coming in Phase 9").foregroundStyle(.secondary)
+                WatchView()
             }
         }
         .frame(minWidth: 700, minHeight: 420)
