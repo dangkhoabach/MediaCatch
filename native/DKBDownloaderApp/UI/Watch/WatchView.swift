@@ -5,7 +5,7 @@ struct WatchView: View {
     @State private var viewModel = WatchViewModel()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack {
                 TextField(t("watch.urlPlaceholder"), text: $viewModel.url)
                     .textFieldStyle(.roundedBorder)
@@ -21,24 +21,21 @@ struct WatchView: View {
                 }
                 .disabled(viewModel.adding || viewModel.url.trimmingCharacters(in: .whitespaces).isEmpty)
             }
+            .padding()
 
             if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage).foregroundStyle(.red).font(.callout)
+                Text(errorMessage).foregroundStyle(.red).font(.callout).padding(.horizontal)
             }
 
             if viewModel.channels.isEmpty {
                 Text(t("watch.empty")).foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView {
-                    VStack(spacing: 8) {
-                        ForEach(viewModel.channels) { channel in
-                            row(channel)
-                        }
-                    }
+                List(viewModel.channels) { channel in
+                    row(channel)
                 }
+                .listStyle(.inset)
             }
         }
-        .padding(20)
         .task { viewModel.refresh() }
     }
 
@@ -61,7 +58,6 @@ struct WatchView: View {
             .labelsHidden()
             Button { viewModel.remove(channel.id ?? -1) } label: { Image(systemName: "trash") }.buttonStyle(.plain)
         }
-        .padding(10)
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+        .padding(.vertical, 6)
     }
 }

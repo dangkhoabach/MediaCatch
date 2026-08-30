@@ -24,16 +24,9 @@ struct LibraryView: View {
     @State private var viewModel = LibraryViewModel()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Picker("", selection: $viewModel.tab) {
-                Text(t("library.tabDownloads")).tag(LibraryViewModel.Tab.downloads)
-                Text(t("library.tabRecent")).tag(LibraryViewModel.Tab.recent)
-            }
-            .pickerStyle(.segmented)
-            .frame(width: 260)
-
+        VStack(alignment: .leading, spacing: 0) {
             if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage).foregroundStyle(.red).font(.callout)
+                Text(errorMessage).foregroundStyle(.red).font(.callout).padding([.horizontal, .top])
             }
 
             switch viewModel.tab {
@@ -41,8 +34,27 @@ struct LibraryView: View {
             case .recent: recentTab
             }
         }
-        .padding(20)
         .task { viewModel.start() }
+        // A real `.toolbar` (merges into the window's title bar chrome and
+        // picks up the Liquid Glass toolbar material on macOS 26+ for free)
+        // instead of a Picker floating in the content area.
+        .toolbar {
+            ToolbarItemGroup(placement: .automatic) {
+                Picker("", selection: $viewModel.tab) {
+                    Text(t("library.tabDownloads")).tag(LibraryViewModel.Tab.downloads)
+                    Text(t("library.tabRecent")).tag(LibraryViewModel.Tab.recent)
+                }
+                .pickerStyle(.segmented)
+
+                if viewModel.tab == .recent {
+                    NativeSearchField(text: $viewModel.recentSearch, placeholder: t("library.recentSearchPlaceholder"))
+                        .frame(width: 200)
+                    if !viewModel.recentLinks.isEmpty {
+                        Button(t("library.recentClear")) { viewModel.clearRecent() }
+                    }
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -50,13 +62,10 @@ struct LibraryView: View {
         if viewModel.records.isEmpty {
             Text(t("library.empty")).foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(viewModel.records) { record in
-                        downloadRow(record)
-                    }
-                }
+            List(viewModel.records) { record in
+                downloadRow(record)
             }
+            .listStyle(.inset)
         }
     }
 
@@ -72,9 +81,10 @@ struct LibraryView: View {
             }
             Spacer()
             Text(statusLabel(record.status))
-                .font(.caption).foregroundStyle(statusColor(record.status))
-                .padding(.horizontal, 8).padding(.vertical, 2)
-                .background(Capsule().strokeBorder(statusColor(record.status)))
+                .font(.caption.bold())
+                .padding(.horizontal, 8).padding(.vertical, 3)
+                .background(statusColor(record.status).opacity(0.15), in: Capsule())
+                .foregroundStyle(statusColor(record.status))
 
             if record.status == .completed, let path = record.outputPath {
                 Button { viewModel.open(path) } label: { Image(systemName: "play.fill") }.buttonStyle(.plain)
@@ -85,30 +95,18 @@ struct LibraryView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(10)
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+        .padding(.vertical, 6)
     }
 
     @ViewBuilder
     private var recentTab: some View {
-        HStack {
-            TextField(t("library.recentSearchPlaceholder"), text: $viewModel.recentSearch)
-                .textFieldStyle(.roundedBorder)
-            if !viewModel.recentLinks.isEmpty {
-                Button(t("library.recentClear")) { viewModel.clearRecent() }
-            }
-        }
-
         if viewModel.filteredRecent.isEmpty {
             Text(t("library.recentEmpty")).foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(viewModel.filteredRecent) { entry in
-                        recentRow(entry)
-                    }
-                }
+            List(viewModel.filteredRecent) { entry in
+                recentRow(entry)
             }
+            .listStyle(.inset)
         }
     }
 
@@ -126,7 +124,6 @@ struct LibraryView: View {
             Button { viewModel.refetch(entry.url) } label: { Image(systemName: "arrow.clockwise") }.buttonStyle(.plain)
             Button { viewModel.deleteRecent(entry.id ?? -1) } label: { Image(systemName: "trash") }.buttonStyle(.plain)
         }
-        .padding(10)
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+        .padding(.vertical, 6)
     }
 }

@@ -77,7 +77,7 @@ struct SettingsView: View {
                 Button(t("settings.openSettings")) { NotificationManager.openSystemNotificationSettings() }
             }
         }
-        .padding(20)
+        .formStyle(.grouped)
         .frame(width: 440)
         .onAppear {
             if outputDir.isEmpty { outputDir = AppSettings.ensureOutputDir() }

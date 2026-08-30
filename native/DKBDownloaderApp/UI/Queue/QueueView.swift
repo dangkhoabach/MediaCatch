@@ -12,14 +12,14 @@ struct QueueView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView {
-                    VStack(spacing: 12) {
-                        ForEach(viewModel.downloads) { download in
-                            row(download)
-                        }
-                    }
-                    .padding(20)
+                // A real `List` (not a hand-rolled `ScrollView`/`VStack`) so
+                // rows get the system's native background/hover/separator
+                // chrome — and, on macOS 26+, the Liquid Glass sidebar/list
+                // material automatically, with no styling of our own.
+                List(viewModel.downloads) { download in
+                    row(download)
                 }
+                .listStyle(.inset)
             }
         }
         .task { viewModel.start() }
@@ -66,7 +66,6 @@ struct QueueView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         }
-        .padding(10)
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+        .padding(.vertical, 6)
     }
 }

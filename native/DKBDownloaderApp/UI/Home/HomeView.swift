@@ -20,13 +20,6 @@ struct HomeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Spacer()
-                    Toggle(t("home.batchMode"), isOn: $viewModel.batchMode)
-                        .toggleStyle(.switch)
-                        .onChange(of: viewModel.batchMode) { _, _ in viewModel.batchItems = [] }
-                }
-
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
                         .foregroundStyle(.red)
@@ -45,6 +38,22 @@ struct HomeView: View {
             .padding(24)
         }
         .frame(minWidth: 480, minHeight: 360)
+        // A plain, unstyled `Button` — not a `Toggle`, even a `.button`-styled
+        // one — matching DKB Monitor's proven lesson: anything but a bare
+        // `Button` here stops looking like a "real" toolbar control to the
+        // system and falls back to a generic floating switch instead of the
+        // native round toolbar-button chrome (and its Liquid Glass material
+        // on macOS 26+). The icon itself reflects on/off state.
+        .toolbar {
+            ToolbarItemGroup(placement: .automatic) {
+                Button {
+                    viewModel.batchMode.toggle()
+                    viewModel.batchItems = []
+                } label: {
+                    Label(t("home.batchMode"), systemImage: viewModel.batchMode ? "list.bullet.rectangle.fill" : "list.bullet.rectangle")
+                }
+            }
+        }
         .task(id: AppNavigationState.shared.pendingFetchUrl) {
             if let pending = AppNavigationState.shared.pendingFetchUrl {
                 await viewModel.handlePendingFetch(pending)
@@ -79,28 +88,37 @@ struct HomeView: View {
             .sorted { ($0.tbr ?? 0) > ($1.tbr ?? 0) }
 
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                if let thumbnail = info.thumbnail, let thumbnailURL = URL(string: thumbnail) {
-                    AsyncImage(url: thumbnailURL) { image in
-                        image.resizable().aspectRatio(contentMode: .fill)
-                    } placeholder: {
-                        Color.gray.opacity(0.2)
-                    }
-                    .frame(width: 160, height: 96)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(info.title).font(.headline)
-                        if let platform = viewModel.platform {
-                            Text(platform)
-                                .font(.caption)
-                                .padding(.horizontal, 6).padding(.vertical, 2)
-                                .background(Capsule().strokeBorder())
+            // `GroupBox` (not a hand-drawn container) so this picks up the
+            // system's automatic card material — Liquid Glass on macOS 26+
+            // — with no styling of our own, same pattern as DKB Monitor's
+            // stat cards.
+            GroupBox {
+                HStack(alignment: .top, spacing: 12) {
+                    if let thumbnail = info.thumbnail, let thumbnailURL = URL(string: thumbnail) {
+                        AsyncImage(url: thumbnailURL) { image in
+                            image.resizable().aspectRatio(contentMode: .fill)
+                        } placeholder: {
+                            Color.gray.opacity(0.2)
                         }
+                        .frame(width: 160, height: 96)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
-                    Text(formatDuration(info.duration)).font(.caption).foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(info.title).font(.headline)
+                            if let platform = viewModel.platform {
+                                Text(platform)
+                                    .font(.caption)
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(.secondary.opacity(0.15), in: Capsule())
+                            }
+                        }
+                        Text(formatDuration(info.duration)).font(.caption).foregroundStyle(.secondary)
+                        Spacer(minLength: 0)
+                    }
+                    Spacer(minLength: 0)
                 }
+                .padding(6)
             }
 
             if !videoFormats.isEmpty {
@@ -112,18 +130,17 @@ struct HomeView: View {
 
             if viewModel.audioOnly, !audioFormats.isEmpty {
                 formatList(audioFormats) { format in
-                    formatRow(icon: "music.note", primary: format.tbr.map { "\(Int($0))kbps" } ?? "—", secondary: format.ext.uppercased(), size: format.filesize, formatId: format.formatId)
+                    formatRowLabel(icon: "music.note", primary: format.tbr.map { "\(Int($0))kbps" } ?? "—", secondary: format.ext.uppercased(), size: format.filesize)
                 }
             }
 
             if !viewModel.audioOnly, !videoFormats.isEmpty {
                 formatList(videoFormats) { format in
-                    formatRow(
+                    formatRowLabel(
                         icon: "video",
                         primary: format.height.map { "\($0)p" } ?? "—",
                         secondary: format.vcodec,
                         size: format.filesize,
-                        formatId: format.formatId,
                         trailing: format.hasAudio ? t("home.hasAudio") : t("home.noAudio")
                     )
                 }
@@ -131,7 +148,7 @@ struct HomeView: View {
 
             if videoFormats.isEmpty, !imageFormats.isEmpty {
                 formatList(imageFormats) { format in
-                    formatRow(icon: "photo", primary: format.ext.uppercased(), secondary: nil, size: format.filesize, formatId: format.formatId)
+                    formatRowLabel(icon: "photo", primary: format.ext.uppercased(), secondary: nil, size: format.filesize)
                 }
             }
 
@@ -151,33 +168,32 @@ struct HomeView: View {
         }
     }
 
-    private func formatList<Format>(_ formats: [Format], @ViewBuilder row: @escaping (Format) -> some View) -> some View {
-        VStack(spacing: 0) {
-            ForEach(Array(formats.enumerated()), id: \.offset) { _, format in
-                row(format)
-                Divider()
+    /// A real `Picker` in `.inline` style (not hand-rolled selectable
+    /// `Button` rows) — renders as a native list with a system checkmark
+    /// next to the selected row, same idiom System Settings uses for
+    /// "pick one of these" lists, and gets the right materials for free.
+    private func formatList(_ formats: [VideoFormat], @ViewBuilder row: @escaping (VideoFormat) -> some View) -> some View {
+        Picker("", selection: Binding(
+            get: { viewModel.selectedFormatId },
+            set: { viewModel.selectedFormatId = $0 }
+        )) {
+            ForEach(formats, id: \.formatId) { format in
+                row(format).tag(Optional(format.formatId))
             }
         }
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+        .pickerStyle(.inline)
+        .labelsHidden()
     }
 
-    private func formatRow(icon: String, primary: String, secondary: String?, size: Int64?, formatId: String, trailing: String? = nil) -> some View {
-        Button {
-            viewModel.selectedFormatId = formatId
-        } label: {
-            HStack {
-                Image(systemName: viewModel.selectedFormatId == formatId ? "largecircle.fill.circle" : "circle")
-                Image(systemName: icon).foregroundStyle(.secondary)
-                Text(primary).frame(width: 70, alignment: .leading)
-                if let secondary { Text(secondary).foregroundStyle(.secondary).frame(width: 100, alignment: .leading) }
-                if let trailing { Text(trailing).foregroundStyle(.secondary) }
-                Spacer()
-                Text(formatSize(size)).foregroundStyle(.secondary)
-            }
-            .contentShape(Rectangle())
-            .padding(.horizontal, 10).padding(.vertical, 6)
+    private func formatRowLabel(icon: String, primary: String, secondary: String?, size: Int64?, trailing: String? = nil) -> some View {
+        HStack {
+            Image(systemName: icon).foregroundStyle(.secondary)
+            Text(primary).frame(width: 70, alignment: .leading)
+            if let secondary { Text(secondary).foregroundStyle(.secondary).frame(width: 100, alignment: .leading) }
+            if let trailing { Text(trailing).foregroundStyle(.secondary) }
+            Spacer()
+            Text(formatSize(size)).foregroundStyle(.secondary)
         }
-        .buttonStyle(.plain)
     }
 
     private var batchSection: some View {
@@ -217,22 +233,24 @@ struct HomeView: View {
             }
 
             if !viewModel.batchItems.isEmpty {
-                VStack(spacing: 0) {
-                    ForEach(viewModel.batchItems) { item in
-                        HStack {
-                            switch item.status {
-                            case .pending: Circle().strokeBorder().frame(width: 10, height: 10)
-                            case .working: ProgressView().controlSize(.small)
-                            case .done: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                            case .error: Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
-                            }
-                            Text(item.message ?? item.url).lineLimit(1).truncationMode(.tail)
+                // A real `List`, height-capped since it's embedded inside
+                // this screen's own `ScrollView` rather than filling the
+                // window — same native row chrome as the other screens'
+                // lists without fighting the outer scroll view for the
+                // gesture.
+                List(viewModel.batchItems) { item in
+                    HStack {
+                        switch item.status {
+                        case .pending: Circle().strokeBorder().frame(width: 10, height: 10)
+                        case .working: ProgressView().controlSize(.small)
+                        case .done: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                        case .error: Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
                         }
-                        .padding(.horizontal, 10).padding(.vertical, 6)
-                        Divider()
+                        Text(item.message ?? item.url).lineLimit(1).truncationMode(.tail)
                     }
                 }
-                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+                .listStyle(.inset)
+                .frame(height: min(CGFloat(viewModel.batchItems.count) * 28 + 16, 280))
             }
         }
     }
