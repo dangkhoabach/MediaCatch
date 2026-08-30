@@ -29,6 +29,18 @@ public final class ProcessRunner: @unchecked Sendable {
     private var stderrBuffer = Data()
     private var finished = false
 
+    // `terminationHandler` firing does not guarantee every byte the child
+    // already wrote has been delivered to our `readabilityHandler` yet —
+    // that delivery is dispatched asynchronously by Foundation and can lag
+    // behind process exit under system load. Gating `finish()` on all three
+    // signals (both pipes' EOF plus the exit code) instead of the exit code
+    // alone is what actually guarantees no trailing output gets lost; the
+    // Phase 4 test suite caught this as a real, load-dependent flake before
+    // this fix.
+    private var terminationCode: Int32?
+    private var stdoutEOF = false
+    private var stderrEOF = false
+
     public let events: AsyncStream<ProcessEvent>
     private let continuation: AsyncStream<ProcessEvent>.Continuation
 
@@ -60,20 +72,26 @@ public final class ProcessRunner: @unchecked Sendable {
             self?.handleData(handle.availableData, isStdout: false)
         }
         process.terminationHandler = { [weak self] proc in
-            self?.finish(exitCode: proc.terminationStatus)
+            self?.markTerminated(exitCode: proc.terminationStatus)
         }
 
         try process.run()
     }
 
     private func handleData(_ data: Data, isStdout: Bool) {
-        // `availableData` returns empty Data at EOF on this pipe — not a
-        // meaningful event on its own. Whether the process is actually done
-        // is decided solely by `terminationHandler`, never by pipe EOF.
-        guard !data.isEmpty else { return }
         lock.lock()
         defer { lock.unlock() }
         guard !finished else { return }
+
+        // Empty `availableData` means EOF on this pipe (the child closed its
+        // end) — one of the 3 signals `maybeFinish` waits on, not something
+        // to ignore.
+        guard !data.isEmpty else {
+            if isStdout { stdoutEOF = true } else { stderrEOF = true }
+            maybeFinish()
+            return
+        }
+
         if isStdout {
             stdoutBuffer.append(data)
             drainLines(from: &stdoutBuffer) { continuation.yield(.stdoutLine($0)) }
@@ -83,19 +101,17 @@ public final class ProcessRunner: @unchecked Sendable {
         }
     }
 
-    private func drainLines(from buffer: inout Data, emit: (String) -> Void) {
-        while let newlineIndex = buffer.firstIndex(of: 0x0A) {
-            let lineData = buffer[..<newlineIndex]
-            buffer.removeSubrange(...newlineIndex)
-            if let line = String(data: lineData, encoding: .utf8) {
-                emit(line)
-            }
-        }
+    private func markTerminated(exitCode: Int32) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !finished else { return }
+        terminationCode = exitCode
+        maybeFinish()
     }
 
-    private func finish(exitCode: Int32) {
-        lock.lock()
-        guard !finished else { lock.unlock(); return }
+    /// Must be called with `lock` already held.
+    private func maybeFinish() {
+        guard let exitCode = terminationCode, stdoutEOF, stderrEOF else { return }
         finished = true
 
         // Flush whatever partial, not-yet-newline-terminated line remains in
@@ -109,12 +125,21 @@ public final class ProcessRunner: @unchecked Sendable {
         }
         stdoutBuffer.removeAll()
         stderrBuffer.removeAll()
-        lock.unlock()
 
         stdoutPipe.fileHandleForReading.readabilityHandler = nil
         stderrPipe.fileHandleForReading.readabilityHandler = nil
         continuation.yield(.terminated(exitCode: exitCode))
         continuation.finish()
+    }
+
+    private func drainLines(from buffer: inout Data, emit: (String) -> Void) {
+        while let newlineIndex = buffer.firstIndex(of: 0x0A) {
+            let lineData = buffer[..<newlineIndex]
+            buffer.removeSubrange(...newlineIndex)
+            if let line = String(data: lineData, encoding: .utf8) {
+                emit(line)
+            }
+        }
     }
 
     /// Suspends the process via `SIGSTOP` — its in-flight network reads/

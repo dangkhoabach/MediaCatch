@@ -4,32 +4,8 @@ import Testing
 
 /// Real-binary, real-network verification that ProcessRunner (Phase 0's PoC)
 /// actually works end-to-end with the bundled yt-dlp sidecar, not just with
-/// toy /bin/sh scripts. Gated behind an env var so a normal `swift test` run
-/// (CI, or a dev machine without network) never depends on network access or
-/// the sidecar binaries being present — set RUN_YTDLP_INTEGRATION_TESTS=1 to
-/// exercise it, e.g. for one-off Phase 0 exit-criteria verification.
-private func ytdlpBinaryURL() -> URL? {
-    #if arch(arm64)
-    let name = "yt-dlp-aarch64-apple-darwin"
-    #else
-    let name = "yt-dlp-x86_64-apple-darwin"
-    #endif
-    // <file>.swift -> DKBDownloaderCoreTests/ -> Tests/ -> DKBDownloaderCore/ -> native/ -> repo root
-    let thisFile = URL(fileURLWithPath: #filePath)
-    let repoRoot = thisFile
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-    let url = repoRoot.appendingPathComponent("src-tauri/binaries/\(name)")
-    return FileManager.default.fileExists(atPath: url.path) ? url : nil
-}
-
-private var integrationTestsEnabled: Bool {
-    ProcessInfo.processInfo.environment["RUN_YTDLP_INTEGRATION_TESTS"] == "1"
-}
-
+/// toy /bin/sh scripts. Gated behind RUN_YTDLP_INTEGRATION_TESTS=1 — see
+/// IntegrationTestSupport.swift.
 struct YtdlpIntegrationTests {
     @Test func realBinaryReportsItsVersion() async throws {
         guard integrationTestsEnabled, let ytdlp = ytdlpBinaryURL() else { return }
@@ -79,7 +55,7 @@ struct YtdlpIntegrationTests {
                 "--newline",
                 "--progress-template", "download:DKB|%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s",
                 "--print", "after_move:filepath",
-                "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+                stableTestVideoURL,
             ]
         )
 
