@@ -67,22 +67,36 @@ struct HomeView: View {
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.large)
                 .onSubmit { Task { await viewModel.fetchInfo() } }
-            // `.borderedProminent` + `.defaultAction` — the standard macOS
-            // treatment for a screen's one primary action (same tint/weight
-            // as a dialog's default "OK" button), so it doesn't read as a
-            // plain, secondary control next to the text field.
-            Button {
-                Task { await viewModel.fetchInfo() }
-            } label: {
-                if viewModel.loading {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Text(t("home.fetchInfo"))
-                }
+            fetchInfoButton
+        }
+    }
+
+    /// Only one `.borderedProminent` action on screen at a time, per Apple
+    /// HIG: once info's loaded, Download (below) is the screen's primary
+    /// action, so this steps back to `.bordered` instead of the two of them
+    /// competing as equally "primary" blue buttons. `.buttonStyle` takes a
+    /// concrete style type, so the two cases need separate `Button`s rather
+    /// than one ternary on the modifier.
+    @ViewBuilder
+    private var fetchInfoButton: some View {
+        let label = Group {
+            if viewModel.loading {
+                ProgressView().controlSize(.small)
+            } else {
+                Text(t("home.fetchInfo"))
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .disabled(viewModel.loading || viewModel.url.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+        let isDisabled = viewModel.loading || viewModel.url.trimmingCharacters(in: .whitespaces).isEmpty
+        if viewModel.info == nil {
+            Button { Task { await viewModel.fetchInfo() } } label: { label }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(isDisabled)
+        } else {
+            Button { Task { await viewModel.fetchInfo() } } label: { label }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .disabled(isDisabled)
         }
     }
 
