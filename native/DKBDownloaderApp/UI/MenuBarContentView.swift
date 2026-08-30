@@ -12,6 +12,13 @@ struct MenuBarContentView: View {
         Button("Show DKB Downloader") {
             WindowPresenter.showMainWindow()
         }
+        // Same tab as the app menu's Cmd+, (see DKBDownloaderApp.swift) —
+        // both entry points select ContentView's one Settings tab in the
+        // main window instead of opening a separate window.
+        Button("Settings…") {
+            AppNavigationState.shared.selectedSection = .settings
+            WindowPresenter.showMainWindow()
+        }
         Button("Quit") {
             NSApp.terminate(nil)
         }

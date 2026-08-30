@@ -147,6 +147,11 @@ struct HomeView: View {
             }
 
             if !viewModel.audioOnly, !videoFormats.isEmpty {
+                if videoFormats.contains(where: { !$0.hasAudio }) {
+                    Text(t("home.noAudioHint"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 formatTable(videoFormats, icon: "video")
             }
 

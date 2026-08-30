@@ -1,7 +1,11 @@
 import SwiftUI
 
-/// Sidebar shell — Home (Phase 8) + Queue/Library/Watch (Phase 9). Settings
-/// lives in its own `Settings {}` scene (Cmd+,), not in the sidebar.
+/// Sidebar shell — Home/Queue/Library/Watch (Phase 8-9) + Settings as its own
+/// sidebar tab. Settings used to live in a separate `Settings {}` scene
+/// (its own floating window on Cmd+,); the app menu's Cmd+, and the menu bar
+/// tray's "Settings…" item both now just bring this window forward and
+/// select this same tab instead, so there's exactly one Settings surface
+/// regardless of entry point.
 struct ContentView: View {
     @Bindable private var navigation = AppNavigationState.shared
 
@@ -21,6 +25,8 @@ struct ContentView: View {
                 LibraryView()
             case .watch:
                 WatchView()
+            case .settings:
+                SettingsView()
             }
         }
         .frame(minWidth: 700, minHeight: 420)

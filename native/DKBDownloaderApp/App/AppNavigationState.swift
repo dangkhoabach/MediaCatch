@@ -1,7 +1,7 @@
 import Observation
 
 enum SidebarSection: String, CaseIterable, Identifiable {
-    case home, queue, library, watch
+    case home, queue, library, watch, settings
     var id: String { rawValue }
 
     @MainActor
@@ -11,6 +11,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .queue: return t("nav.queue")
         case .library: return t("nav.library")
         case .watch: return t("nav.watch")
+        case .settings: return t("nav.settings")
         }
     }
 
@@ -20,6 +21,7 @@ enum SidebarSection: String, CaseIterable, Identifiable {
         case .queue: return "arrow.down.circle"
         case .library: return "square.stack"
         case .watch: return "eye"
+        case .settings: return "gearshape"
         }
     }
 }

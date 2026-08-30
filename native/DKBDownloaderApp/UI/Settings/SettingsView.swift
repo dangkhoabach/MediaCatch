@@ -5,6 +5,10 @@ import SwiftUI
 /// matches what `AppSettings`'s read-only helpers (Home/Watch/download flow)
 /// already look up, so a change here takes effect on the very next fetch/
 /// download without any extra wiring.
+///
+/// Lives as its own sidebar tab in `ContentView` (not a separate `Settings {}`
+/// scene/window) so the app menu's Cmd+, and the menu bar tray's "Settings…"
+/// item both land on this exact same view instead of two different surfaces.
 struct SettingsView: View {
     @AppStorage("dkb-downloader:outputDir") private var outputDir = ""
     @AppStorage("dkb-downloader:outputFormat") private var outputFormat = "mp4"
@@ -78,7 +82,6 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 440)
         .onAppear {
             if outputDir.isEmpty { outputDir = AppSettings.ensureOutputDir() }
         }

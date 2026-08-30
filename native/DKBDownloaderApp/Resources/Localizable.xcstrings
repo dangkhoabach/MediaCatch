@@ -196,6 +196,23 @@
         }
       }
     },
+    "home.noAudioHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"No audio\" formats still get the best audio track merged in automatically when downloaded."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Các định dạng \"không tiếng\" vẫn sẽ được tự động ghép track âm thanh tốt nhất khi tải về."
+          }
+        }
+      }
+    },
     "home.noFormatSelected": {
       "extractionState": "manual",
       "localizations": {

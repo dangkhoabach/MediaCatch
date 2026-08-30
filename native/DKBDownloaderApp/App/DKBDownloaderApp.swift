@@ -30,14 +30,23 @@ struct DKBDownloaderApp: App {
                     AppUpdater.checkForUpdates()
                 }
             }
+            // Replaces the default Cmd+, action (which would normally open a
+            // separate `Settings {}` scene/window). There's no such scene
+            // any more — Settings is just another sidebar tab in the main
+            // window (see ContentView), so Cmd+, brings that window forward
+            // and selects the same tab the menu bar tray's "Settings…" item
+            // does, instead of opening a second window.
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") {
+                    AppNavigationState.shared.selectedSection = .settings
+                    WindowPresenter.showMainWindow()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
         }
 
         MenuBarExtra("DKB Downloader", systemImage: "arrow.down.circle") {
             MenuBarContentView()
-        }
-
-        Settings {
-            SettingsView()
         }
     }
 }
