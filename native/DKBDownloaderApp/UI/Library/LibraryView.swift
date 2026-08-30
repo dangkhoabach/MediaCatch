@@ -1,12 +1,13 @@
 import DKBDownloaderCore
 import SwiftUI
 
+@MainActor
 private func statusLabel(_ status: DownloadStatus) -> String {
     switch status {
-    case .downloading: return "Downloading"
-    case .completed: return "Completed"
-    case .error: return "Error"
-    case .canceled: return "Canceled"
+    case .downloading: return t("library.status.downloading")
+    case .completed: return t("library.status.completed")
+    case .error: return t("library.status.error")
+    case .canceled: return t("library.status.canceled")
     }
 }
 
@@ -25,8 +26,8 @@ struct LibraryView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Picker("", selection: $viewModel.tab) {
-                Text("Downloads").tag(LibraryViewModel.Tab.downloads)
-                Text("Recent links").tag(LibraryViewModel.Tab.recent)
+                Text(t("library.tabDownloads")).tag(LibraryViewModel.Tab.downloads)
+                Text(t("library.tabRecent")).tag(LibraryViewModel.Tab.recent)
             }
             .pickerStyle(.segmented)
             .frame(width: 260)
@@ -47,7 +48,7 @@ struct LibraryView: View {
     @ViewBuilder
     private var downloadsTab: some View {
         if viewModel.records.isEmpty {
-            Text("No downloads yet").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
+            Text(t("library.empty")).foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {
                 VStack(spacing: 8) {
@@ -91,15 +92,15 @@ struct LibraryView: View {
     @ViewBuilder
     private var recentTab: some View {
         HStack {
-            TextField("Search recent links…", text: $viewModel.recentSearch)
+            TextField(t("library.recentSearchPlaceholder"), text: $viewModel.recentSearch)
                 .textFieldStyle(.roundedBorder)
             if !viewModel.recentLinks.isEmpty {
-                Button("Clear all") { viewModel.clearRecent() }
+                Button(t("library.recentClear")) { viewModel.clearRecent() }
             }
         }
 
         if viewModel.filteredRecent.isEmpty {
-            Text("No recent links").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
+            Text(t("library.recentEmpty")).foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {
                 VStack(spacing: 8) {
@@ -117,7 +118,7 @@ struct LibraryView: View {
                 Text(entry.title).font(.callout).lineLimit(1)
                 Text(
                     entry.lastFetchedAt.formatted(date: .abbreviated, time: .shortened)
-                        + (entry.fetchCount > 1 ? " · fetched \(entry.fetchCount)×" : "")
+                        + (entry.fetchCount > 1 ? " · " + t("library.recentFetchCount", ["count": "\(entry.fetchCount)"]) : "")
                 )
                 .font(.caption).foregroundStyle(.secondary)
             }

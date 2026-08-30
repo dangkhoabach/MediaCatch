@@ -51,13 +51,13 @@ final class LibraryViewModel {
             try AppServices.downloadRepo.delete(id: id)
             refresh()
         } catch {
-            errorMessage = "\(error)"
+            errorMessage = "\(t("library.deleteError")): \(error)"
         }
     }
 
     func open(_ path: String) {
         if !NSWorkspace.shared.open(URL(fileURLWithPath: path)) {
-            errorMessage = "Couldn't open \(path)"
+            errorMessage = t("library.openError")
         }
     }
 

@@ -8,7 +8,7 @@ struct QueueView: View {
     var body: some View {
         Group {
             if viewModel.downloads.isEmpty {
-                Text("No active downloads")
+                Text(t("queue.empty"))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -60,7 +60,7 @@ struct QueueView: View {
                 Text(progress?.speed.trimmingCharacters(in: .whitespaces) ?? "")
                 Spacer()
                 if let eta = progress?.eta.trimmingCharacters(in: .whitespaces), !eta.isEmpty {
-                    Text("ETA \(eta)")
+                    Text(t("queue.eta", ["eta": eta]))
                 }
             }
             .font(.caption)

@@ -16,7 +16,8 @@ enum BackgroundServices {
                 case .newVideoDownloading(let channelTitle, let videoTitle, _):
                     guard AppSettings.notificationsEnabled() else { continue }
                     await NotificationManager.shared.notify(
-                        title: "New video from \(channelTitle)", body: videoTitle, route: "queue"
+                        title: t("notification.watchedNewVideo.title", ["channel": channelTitle]),
+                        body: videoTitle, route: "queue"
                     )
                 }
             }
@@ -37,7 +38,9 @@ enum BackgroundServices {
             let updater = YtdlpUpdater(ytdlpURL: AppServices.ytdlpURL, binDirectory: AppDatabaseLocation.binDirectory())
             guard let newVersion = try? await updater.updateIfNeeded(), AppSettings.notificationsEnabled() else { return }
             await NotificationManager.shared.notify(
-                title: "yt-dlp updated", body: "Now using version \(newVersion)", route: nil
+                title: t("notification.ytdlpUpdated.title"),
+                body: t("notification.ytdlpUpdated.body", ["version": newVersion]),
+                route: nil
             )
         }
     }

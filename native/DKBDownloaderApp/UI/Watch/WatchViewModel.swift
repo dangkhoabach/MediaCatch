@@ -40,7 +40,7 @@ final class WatchViewModel {
             url = ""
             refresh()
         } catch {
-            errorMessage = "\(error)"
+            errorMessage = "\(t("watch.addError")): \(error)"
         }
     }
 
@@ -51,7 +51,7 @@ final class WatchViewModel {
         do {
             try AppServices.watchedChannelRepo.setEnabled(id: id, enabled: enabled)
         } catch {
-            errorMessage = "\(error)"
+            errorMessage = "\(t("watch.toggleError")): \(error)"
             refresh()
         }
     }
@@ -61,7 +61,7 @@ final class WatchViewModel {
             try AppServices.watchedChannelRepo.remove(id: id)
             refresh()
         } catch {
-            errorMessage = "\(error)"
+            errorMessage = "\(t("watch.removeError")): \(error)"
         }
     }
 }

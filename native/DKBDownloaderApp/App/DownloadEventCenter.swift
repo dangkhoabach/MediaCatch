@@ -40,11 +40,11 @@ final class DownloadEventCenter {
         case .completed(let downloadId, _):
             progressById[downloadId] = nil
             changeTick += 1
-            notifyIfEnabled(titlePrefix: "Download complete", downloadId: downloadId, route: "library")
+            notifyIfEnabled(titleKey: "notification.downloadComplete.title", downloadId: downloadId, route: "library")
         case .failed(let downloadId, _):
             progressById[downloadId] = nil
             changeTick += 1
-            notifyIfEnabled(titlePrefix: "Download failed", downloadId: downloadId, route: "library")
+            notifyIfEnabled(titleKey: "notification.downloadError.title", downloadId: downloadId, route: "library")
         case .canceled(let downloadId):
             progressById[downloadId] = nil
             changeTick += 1
@@ -54,12 +54,13 @@ final class DownloadEventCenter {
     /// Mirrors `App.tsx::DownloadNotifications` — body is the download's own
     /// title (looked up fresh from the DB), same for both outcomes; only the
     /// notification's title differs.
-    private func notifyIfEnabled(titlePrefix: String, downloadId: Int64, route: String) {
+    private func notifyIfEnabled(titleKey: String, downloadId: Int64, route: String) {
         guard AppSettings.notificationsEnabled() else { return }
         let downloads = (try? AppServices.downloadRepo.list()) ?? []
-        let title = downloads.first { $0.id == downloadId }?.title ?? ""
+        let downloadTitle = downloads.first { $0.id == downloadId }?.title ?? ""
+        let notificationTitle = t(titleKey)
         Task {
-            await NotificationManager.shared.notify(title: titlePrefix, body: title, route: route)
+            await NotificationManager.shared.notify(title: notificationTitle, body: downloadTitle, route: route)
         }
     }
 }

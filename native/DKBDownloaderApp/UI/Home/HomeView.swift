@@ -22,7 +22,7 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Spacer()
-                    Toggle("Batch mode", isOn: $viewModel.batchMode)
+                    Toggle(t("home.batchMode"), isOn: $viewModel.batchMode)
                         .toggleStyle(.switch)
                         .onChange(of: viewModel.batchMode) { _, _ in viewModel.batchItems = [] }
                 }
@@ -54,7 +54,7 @@ struct HomeView: View {
 
     private var fetchSection: some View {
         HStack {
-            TextField("Paste a video/playlist URL…", text: $viewModel.url)
+            TextField(t("home.urlPlaceholder"), text: $viewModel.url)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { Task { await viewModel.fetchInfo() } }
             Button {
@@ -63,7 +63,7 @@ struct HomeView: View {
                 if viewModel.loading {
                     ProgressView().controlSize(.small)
                 } else {
-                    Text("Fetch Info")
+                    Text(t("home.fetchInfo"))
                 }
             }
             .disabled(viewModel.loading || viewModel.url.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -105,7 +105,7 @@ struct HomeView: View {
 
             if !videoFormats.isEmpty {
                 Toggle(isOn: Binding(get: { viewModel.audioOnly }, set: { viewModel.setAudioOnly($0) })) {
-                    Label("Audio only", systemImage: "music.note")
+                    Label(t("home.audioOnly"), systemImage: "music.note")
                 }
                 .toggleStyle(.switch)
             }
@@ -124,7 +124,7 @@ struct HomeView: View {
                         secondary: format.vcodec,
                         size: format.filesize,
                         formatId: format.formatId,
-                        trailing: format.hasAudio ? "has audio" : "no audio"
+                        trailing: format.hasAudio ? t("home.hasAudio") : t("home.noAudio")
                     )
                 }
             }
@@ -143,7 +143,7 @@ struct HomeView: View {
                     if viewModel.starting {
                         ProgressView().controlSize(.small)
                     } else {
-                        Text("Download")
+                        Text(t("home.download"))
                     }
                 }
                 .disabled(viewModel.starting || viewModel.selectedFormatId == nil)
@@ -182,12 +182,20 @@ struct HomeView: View {
 
     private var batchSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TextEditor(text: $viewModel.batchText)
-                .frame(minHeight: 120)
-                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.separator))
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $viewModel.batchText)
+                if viewModel.batchText.isEmpty {
+                    Text(t("home.batchPlaceholder"))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 8).padding(.leading, 5)
+                        .allowsHitTesting(false)
+                }
+            }
+            .frame(minHeight: 120)
+            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.separator))
 
             Toggle(isOn: Binding(get: { viewModel.audioOnly }, set: { viewModel.audioOnly = $0 })) {
-                Label("Audio only", systemImage: "music.note")
+                Label(t("home.audioOnly"), systemImage: "music.note")
             }
             .toggleStyle(.switch)
 
@@ -198,13 +206,13 @@ struct HomeView: View {
                     if viewModel.batchRunning {
                         ProgressView().controlSize(.small)
                     } else {
-                        Text("Add all to queue")
+                        Text(t("home.batchSubmit"))
                     }
                 }
                 .disabled(viewModel.batchRunning || viewModel.batchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 if !viewModel.batchRunning, !viewModel.batchItems.isEmpty {
-                    Button("Go to Queue") { AppNavigationState.shared.selectedSection = .queue }
+                    Button(t("nav.queue")) { AppNavigationState.shared.selectedSection = .queue }
                 }
             }
 

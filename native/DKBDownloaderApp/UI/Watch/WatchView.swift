@@ -7,7 +7,7 @@ struct WatchView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                TextField("Channel or playlist URL…", text: $viewModel.url)
+                TextField(t("watch.urlPlaceholder"), text: $viewModel.url)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { Task { await viewModel.add() } }
                 Button {
@@ -16,7 +16,7 @@ struct WatchView: View {
                     if viewModel.adding {
                         ProgressView().controlSize(.small)
                     } else {
-                        Text("Add")
+                        Text(t("watch.add"))
                     }
                 }
                 .disabled(viewModel.adding || viewModel.url.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -27,7 +27,7 @@ struct WatchView: View {
             }
 
             if viewModel.channels.isEmpty {
-                Text("No channels watched yet").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
+                Text(t("watch.empty")).foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     VStack(spacing: 8) {
@@ -47,8 +47,8 @@ struct WatchView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(channel.title).font(.callout).lineLimit(1)
                 Text(
-                    channel.lastCheckedAt.map { "Last checked \($0.formatted(date: .abbreviated, time: .shortened))" }
-                        ?? "Never checked"
+                    channel.lastCheckedAt.map { t("watch.lastChecked", ["time": $0.formatted(date: .abbreviated, time: .shortened)]) }
+                        ?? t("watch.neverChecked")
                 )
                 .font(.caption).foregroundStyle(.secondary)
             }

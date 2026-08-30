@@ -16,51 +16,65 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Output") {
+            Section(t("settings.section.output")) {
                 HStack {
-                    TextField("Output folder", text: $outputDir).disabled(true)
+                    TextField(t("settings.outputDir"), text: $outputDir).disabled(true)
                     Button("Browse…") { browseOutputDir() }
                 }
-                Picker("Output format", selection: $outputFormat) {
+                Picker(t("settings.outputFormat"), selection: $outputFormat) {
                     Text("MP4").tag("mp4")
                     Text("MKV").tag("mkv")
                 }
             }
 
-            Section("Appearance") {
-                Picker("Theme", selection: $theme) {
-                    Text("Light").tag("light")
-                    Text("Dark").tag("dark")
-                    Text("System").tag("system")
+            Section(t("settings.section.appearance")) {
+                Picker(t("settings.theme"), selection: $theme) {
+                    Text(t("settings.theme.light")).tag("light")
+                    Text(t("settings.theme.dark")).tag("dark")
+                    Text(t("settings.theme.system")).tag("system")
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+
+                Picker(t("settings.language"), selection: Binding(
+                    get: { LocalizationCenter.shared.locale },
+                    set: { LocalizationCenter.shared.locale = $0 }
+                )) {
+                    Text("VI").tag(AppLocale.vi)
+                    Text("EN").tag(AppLocale.en)
                 }
                 .pickerStyle(.segmented)
             }
 
-            Section("Downloads") {
-                Toggle("Embed metadata (thumbnail, chapters, subtitles)", isOn: $embedMetadata)
-                Toggle("Use aria2c external downloader", isOn: $useAria2c)
-                Picker("Read cookies from browser", selection: $cookiesBrowser) {
-                    Text("None").tag("none")
-                    Text("Safari").tag("safari")
-                    Text("Chrome").tag("chrome")
-                    Text("Firefox").tag("firefox")
-                    Text("Edge").tag("edge")
-                    Text("Brave").tag("brave")
+            Section(t("settings.section.downloads")) {
+                Toggle(t("settings.embedMetadata"), isOn: $embedMetadata)
+                Text(t("settings.embedMetadataHint")).font(.caption).foregroundStyle(.secondary)
+                Toggle(t("settings.useAria2c"), isOn: $useAria2c)
+                Text(t("settings.useAria2cHint")).font(.caption).foregroundStyle(.secondary)
+                Picker(t("settings.cookiesBrowser"), selection: $cookiesBrowser) {
+                    Text(t("settings.cookiesBrowser.none")).tag("none")
+                    Text(t("settings.cookiesBrowser.safari")).tag("safari")
+                    Text(t("settings.cookiesBrowser.chrome")).tag("chrome")
+                    Text(t("settings.cookiesBrowser.firefox")).tag("firefox")
+                    Text(t("settings.cookiesBrowser.edge")).tag("edge")
+                    Text(t("settings.cookiesBrowser.brave")).tag("brave")
                 }
+                Text(t("settings.cookiesBrowserHint")).font(.caption).foregroundStyle(.secondary)
             }
 
-            Section("Notifications") {
-                Toggle("Enable notifications", isOn: $notificationsEnabled)
+            Section(t("settings.notifications")) {
+                Toggle(t("settings.notifications"), isOn: $notificationsEnabled)
                     .onChange(of: notificationsEnabled) { _, enabled in
                         guard enabled else { return }
                         Task {
                             await NotificationManager.shared.requestAuthorization()
                             await NotificationManager.shared.notify(
-                                title: "DKB Downloader", body: "Notifications are enabled", route: nil
+                                title: t("app.name"), body: t("settings.notificationsHint"), route: nil
                             )
                         }
                     }
-                Button("Open Notification Settings…") { NotificationManager.openSystemNotificationSettings() }
+                Text(t("settings.notificationsHint")).font(.caption).foregroundStyle(.secondary)
+                Button(t("settings.openSettings")) { NotificationManager.openSystemNotificationSettings() }
             }
         }
         .padding(20)

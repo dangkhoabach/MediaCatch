@@ -90,7 +90,7 @@ final class HomeViewModel {
             try? urlHistoryRepo.upsert(url: trimmed, title: result.title)
             selectedFormatId = defaultFormatId(for: result, audioOnly: audioOnly)
         } catch {
-            errorMessage = "\(error)"
+            errorMessage = "\(t("home.fetchError")): \(error)"
         }
     }
 
@@ -100,14 +100,14 @@ final class HomeViewModel {
         do {
             let entries = try await ytdlpClient.expandPlaylist(url: playlistUrl)
             guard !entries.isEmpty else {
-                errorMessage = "Playlist has no videos"
+                errorMessage = t("home.playlistEmpty")
                 return
             }
             batchMode = true
             batchItems = []
             batchText = entries.map(\.url).joined(separator: "\n")
         } catch {
-            errorMessage = "\(error)"
+            errorMessage = "\(t("home.playlistExpandError")): \(error)"
         }
     }
 
@@ -140,7 +140,7 @@ final class HomeViewModel {
         defer { starting = false }
 
         guard let format = info.formats.first(where: { $0.formatId == selectedFormatId }) else {
-            errorMessage = "No format selected"
+            errorMessage = t("home.noFormatSelected")
             return
         }
 
@@ -172,7 +172,7 @@ final class HomeViewModel {
             try await downloadManager.start(request)
             AppNavigationState.shared.selectedSection = .queue
         } catch {
-            errorMessage = "\(error)"
+            errorMessage = "\(t("home.downloadStartError")): \(error)"
         }
     }
 
@@ -206,7 +206,7 @@ final class HomeViewModel {
                     selector = "bestaudio/best"
                 } else {
                     guard let best = result.formats.filter(\.hasVideo).max(by: { ($0.height ?? 0) < ($1.height ?? 0) }) else {
-                        throw YtdlpError.processFailed("No format selected")
+                        throw YtdlpError.processFailed(t("home.noFormatSelected"))
                     }
                     selector = best.hasAudio ? best.formatId : "\(best.formatId)+bestaudio/best"
                 }

@@ -4,12 +4,13 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case home, queue, library, watch
     var id: String { rawValue }
 
+    @MainActor
     var label: String {
         switch self {
-        case .home: return "Home"
-        case .queue: return "Queue"
-        case .library: return "Library"
-        case .watch: return "Watch"
+        case .home: return t("nav.home")
+        case .queue: return t("nav.queue")
+        case .library: return t("nav.library")
+        case .watch: return t("nav.watch")
         }
     }
 
