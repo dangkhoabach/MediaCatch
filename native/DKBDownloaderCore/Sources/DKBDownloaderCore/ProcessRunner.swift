@@ -47,6 +47,18 @@ public final class ProcessRunner: @unchecked Sendable {
     public var pid: Int32 { process.processIdentifier }
     public var isRunning: Bool { process.isRunning }
 
+    // A real installed .app launched from Finder/Dock/Spotlight has no shell
+    // login PATH — it only inherits launchd's minimal default, which doesn't
+    // include Homebrew's bin dirs. yt-dlp itself (and its aria2c child
+    // process, spawned as a bare command name) relies on PATH to find
+    // Homebrew-installed tools, so append the common Homebrew/local prefixes
+    // here rather than leaving this to fail silently in a packaged build
+    // while working fine when launched from Xcode/Terminal (which do inherit
+    // a shell PATH).
+    private static let supplementalPathEntries = [
+        "/opt/homebrew/bin", "/opt/homebrew/sbin", "/usr/local/bin", "/usr/local/sbin",
+    ]
+
     public init(executableURL: URL, arguments: [String], currentDirectoryURL: URL? = nil) throws {
         let process = Process()
         process.executableURL = executableURL
@@ -54,6 +66,12 @@ public final class ProcessRunner: @unchecked Sendable {
         if let currentDirectoryURL {
             process.currentDirectoryURL = currentDirectoryURL
         }
+        var environment = ProcessInfo.processInfo.environment
+        let existingPath = environment["PATH"] ?? "/usr/bin:/bin:/usr/sbin:/sbin"
+        let existingEntries = Set(existingPath.split(separator: ":").map(String.init))
+        let newEntries = Self.supplementalPathEntries.filter { !existingEntries.contains($0) }
+        environment["PATH"] = (newEntries + [existingPath]).joined(separator: ":")
+        process.environment = environment
         process.standardOutput = stdoutPipe
         process.standardError = stderrPipe
         self.process = process

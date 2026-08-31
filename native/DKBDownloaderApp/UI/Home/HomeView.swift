@@ -1,5 +1,6 @@
 import DKBDownloaderCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 private func formatSize(_ bytes: Int64?) -> String {
     guard let bytes, bytes > 0 else { return "—" }
@@ -59,6 +60,38 @@ struct HomeView: View {
                 await viewModel.handlePendingFetch(pending)
             }
         }
+        // Mirrors the old Tauri app's page-level `onDrop`: dragging a link
+        // in (e.g. from Safari's address bar) fills the URL field and kicks
+        // off Fetch Info in one action, instead of requiring copy-paste.
+        // Tries `.url` first (what a browser address-bar drag provides),
+        // falling back to plain text — matching the old `text/uri-list` then
+        // `text/plain` fallback.
+        .onDrop(of: [.url, .plainText], isTargeted: nil, perform: handleDrop)
+    }
+
+    private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
+        guard let provider = providers.first else { return false }
+        if provider.canLoadObject(ofClass: URL.self) {
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                guard let url else { return }
+                Task { @MainActor in
+                    viewModel.url = url.absoluteString
+                    await viewModel.fetchInfo()
+                }
+            }
+            return true
+        }
+        if provider.canLoadObject(ofClass: NSString.self) {
+            _ = provider.loadObject(ofClass: NSString.self) { text, _ in
+                guard let text = text as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                Task { @MainActor in
+                    viewModel.url = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    await viewModel.fetchInfo()
+                }
+            }
+            return true
+        }
+        return false
     }
 
     private var fetchSection: some View {
