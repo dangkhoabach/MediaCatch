@@ -28,9 +28,14 @@ targets:
       properties:
         LSUIElement: false
         # Sparkle (Phase 7). SUPublicEDKey is a placeholder until a real
-        # EdDSA keypair is generated (see .github/workflows/native-release.yml's
-        # header comment for the exact one-time steps) — private half goes
-        # into the SPARKLE_ED_PRIVATE_KEY GitHub Actions secret, never here.
+        # EdDSA keypair is generated — run (see docs/release.md):
+        #   sparkle-tools/bin/generate_keys --account dkb-downloader
+        # The --account flag is required: without it, generate_keys/sign_update
+        # fall back to the Keychain's default "ed25519" account, which is
+        # already occupied by DKB Monitor's key — omitting it would silently
+        # reuse/sign with the wrong key instead of generating a new one.
+        # Releases are signed and uploaded locally (scripts/release.sh) —
+        # there is no CI secret for this key.
         # Same domain the old Tauri app's updater used (updates.dangkhoabach.vn),
         # just a different file — not GitHub Releases, this project doesn't
         # publish there. MyWebsiteAPI's AppReleaseService now supports

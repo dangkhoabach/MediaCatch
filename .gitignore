@@ -25,3 +25,8 @@ vendor/binaries/
 
 # Signing secrets for release builds — never commit
 .env.release
+
+# scripts/release.sh's downloaded Sparkle CLI tools + local build output —
+# both reproducible, neither should be committed.
+.sparkle-tools/
+release-output/

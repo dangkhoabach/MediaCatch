@@ -22,8 +22,8 @@ a channel.
 ```
 DKBDownloaderApp/     App target: SwiftUI views, App/AppKit glue
 DKBDownloaderCore/    Swift Package: models, DB, download engine, tests
-scripts/              fetch-sidecars.sh (downloads yt-dlp/ffmpeg seed binaries)
-vendor/binaries/      Sidecar binary seed (gitignored, fetched locally/in CI)
+scripts/              fetch-sidecars.sh (downloads yt-dlp/ffmpeg seed binaries), release.sh (local build/sign/notarize)
+vendor/binaries/      Sidecar binary seed (gitignored, fetched locally)
 docs/                 Design/porting notes, release process
 ```
 

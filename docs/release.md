@@ -8,61 +8,81 @@ project itself was later flattened out of a `native/` wrapper folder to the
 repo root (that folder existed only to sit alongside the Tauri tree during
 the port). This is now the only release process for this app.
 
-## How it works
+Everything runs locally on this Mac — no CI, no GitHub Actions secrets.
+Same manual-publish model the old Tauri app used (build + sign locally,
+then upload by hand to admin.dangkhoabach.vn): only the build tooling
+changed (`xcodebuild`/`codesign`/Sparkle instead of `cargo tauri build`/
+`tauri-plugin-updater`'s minisign).
 
-Pushing a `v*` tag triggers `.github/workflows/native-release.yml` on a
-GitHub-hosted macOS runner: `swift test` → `xcodegen generate` → archive →
-Developer ID sign → notarize + staple → DMG → Sparkle-sign, then uploads the
-DMG + its `.sig` as workflow artifacts. This project doesn't publish to
-GitHub Releases — publishing from there is manual, same as the old Tauri
-app's process: download the two artifacts and upload them via
-admin.dangkhoabach.vn's web UI for the `dkb-downloader` app (installer =
-the `.dmg`, Sparkle signature = the contents of the `.sig`). MyWebsiteAPI's
-`AppReleaseService` generates `appcast.xml` from that upload (same feature
-added for DKB Monitor).
+## One-time setup
 
-`SUFeedURL` in `project.yml` points at
-`updates.dangkhoabach.vn/dkb-downloader/appcast.xml` — the same domain the
-old Tauri app's updater used, just a different file. Once the first version
-has been uploaded via admin.dangkhoabach.vn, Sparkle's "Check for Updates…"
-and the scheduled background check both work automatically.
-
-## One-time setup (not done yet — see native-release.yml's header comment)
-
-1. **Generate a Sparkle EdDSA keypair** — grab the `generate_keys` binary
-   from a Sparkle release tarball (version must match `project.yml`'s
-   pinned SPM version), run it, then:
-   - Paste the printed public key into `SUPublicEDKey` in `project.yml`
-     (currently the placeholder `REPLACE_WITH_GENERATED_ED25519_PUBLIC_KEY`).
-   - Save the printed private key as the GitHub Actions secret
-     `SPARKLE_ED_PRIVATE_KEY`.
-   - This is a **new** keypair — not DKB Monitor's, and not the minisign key
-     `tauri-plugin-updater` currently uses for this app's Tauri build.
-2. **Add the remaining 7 repo secrets** (Settings → Secrets and variables →
-   Actions): `APPLE_DEVELOPER_ID_CERT_P12_BASE64`,
-   `APPLE_DEVELOPER_ID_CERT_PASSWORD`, `APPLE_TEAM_ID`,
-   `APPLE_NOTARIZE_KEY_ID`, `APPLE_NOTARIZE_ISSUER_ID`,
-   `APPLE_NOTARIZE_KEY_P8_BASE64`, `CI_KEYCHAIN_PASSWORD`.
-3. Once both are done, `SUEnableAutomaticChecks` in `project.yml` can be
-   flipped to `true` — it's `false` until a real feed exists, otherwise
-   Sparkle pops an "Unable to Check for Updates" alert on every launch
-   (same bug hit and fixed the same way in DKB Monitor).
+1. **Developer ID signing identity** — must already be in this Mac's login
+   Keychain (`security find-identity -v -p codesigning` should list
+   "Developer ID Application: ...").
+2. **Notarization credentials** — store once as a Keychain profile:
+   ```bash
+   xcrun notarytool store-credentials dkb-release-notarize \
+     --apple-id <your-apple-id-email> \
+     --team-id <APPLE_TEAM_ID> \
+     --password <app-specific-password>
+   ```
+   Generate the app-specific password at appleid.apple.com if you don't
+   already have one saved. `scripts/release.sh` reads the profile name from
+   `$NOTARY_PROFILE`, defaulting to `dkb-release-notarize` — same profile
+   name/setup as DKB Monitor, reusable across both apps.
+3. **Sparkle EdDSA keypair** — not generated yet. Grab the tools from a
+   Sparkle release tarball (version must match `project.yml`'s pinned SPM
+   version) and run:
+   ```bash
+   curl -fsSL -o /tmp/sparkle.tar.xz \
+     https://github.com/sparkle-project/Sparkle/releases/download/2.6.4/Sparkle-2.6.4.tar.xz
+   mkdir -p /tmp/sparkle-tools && tar -xf /tmp/sparkle.tar.xz -C /tmp/sparkle-tools
+   /tmp/sparkle-tools/bin/generate_keys --account dkb-downloader
+   ```
+   The `--account dkb-downloader` flag is **required** — omitting it falls
+   back to the Keychain's default `ed25519` account, which is already
+   occupied by DKB Monitor's key (Sparkle's own docs: "you only need one
+   signing key, no matter how many apps you embed Sparkle in" — true in
+   general, but this repo deliberately keeps a separate key per app for
+   isolation). Paste the printed public key into `SUPublicEDKey` in
+   `project.yml` (currently the placeholder
+   `REPLACE_WITH_GENERATED_ED25519_PUBLIC_KEY`).
+4. **`APPLE_TEAM_ID`** — export it in your shell profile (`~/.zshrc` etc.):
+   ```bash
+   export APPLE_TEAM_ID=XXXXXXXXXX
+   ```
+5. Once steps 1-3 are done and a first version has been uploaded (see
+   below), flip `SUEnableAutomaticChecks` to `true` in `project.yml` — it's
+   `false` until then, otherwise Sparkle pops an "Unable to Check for
+   Updates" alert on every launch since there's no feed to reach yet.
 
 ## Cutting a release
 
-1. Bump the version — `CFBundleShortVersionString`/`CFBundleVersion` in
-   `DKBDownloaderApp/Info.plist` (currently hardcoded `1.0`/`1`, since
-   no release has happened yet).
-2. Commit the bump, then tag and push:
-   ```bash
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
-   ```
-3. Watch the `Native (Swift) Release` workflow run in GitHub Actions. On
-   success, download its `DKB-Downloader-X.Y.Z` artifact (DMG + `.sig`).
-4. Upload the DMG + `.sig` via admin.dangkhoabach.vn's web UI for the
-   `dkb-downloader` app — this writes `updates.dangkhoabach.vn`'s
-   `appcast.xml`, which `SUFeedURL` points at.
+```bash
+./scripts/release.sh
+```
+
+Fetches sidecar binaries if missing, then runs: `swift test` →
+`xcodegen generate` → archive → Developer ID sign → notarize + staple → DMG
+→ Sparkle-sign (under the `dkb-downloader` account). Output lands in
+`release-output/<version>/` (gitignored): the `.dmg` and its `.sig` (the
+raw EdDSA signature, ready to paste as-is).
+
+## Uploading a release
+
+Not automated — go to **admin.dangkhoabach.vn → Apps** and use "Publish new
+app" (first release — slug `dkb-downloader`) or "Republish" (subsequent
+releases), ticking macOS and uploading:
+
+| Form field | File |
+|---|---|
+| Installer file | `DKB-Downloader-<version>.dmg` |
+| Sparkle signature (.sig) | `DKB-Downloader-<version>.dmg.sig` (paste its contents) |
+
+Leave "Updater bundle"/"Signature (.sig)" (the Tauri-format fields) empty —
+this app never shipped a Tauri auto-updater. The admin panel writes
+`updates.dangkhoabach.vn/dkb-downloader/appcast.xml` from the Sparkle
+fields, which `SUFeedURL` in `project.yml` points at.
 
 ## Sidecar binaries (yt-dlp, ffmpeg)
 
@@ -70,9 +90,8 @@ Same seed binaries as the old Tauri build (D12 — bundled as-is, not
 rebuilt): `project.yml`'s `postbuildScripts` copies
 `vendor/binaries/yt-dlp-aarch64-apple-darwin` and
 `ffmpeg-x86_64-apple-darwin` into `Contents/Resources/bin/` at build time.
-Run `scripts/fetch-sidecars.sh` first if `vendor/binaries/` is empty
-(gitignored, not committed — see that script's own comments) — CI does not
-run this automatically, so a release built without it ships without a
-working yt-dlp/ffmpeg until `YtdlpUpdater` self-updates yt-dlp on first
-launch (ffmpeg has no such self-update path, so CI must have real binaries
-checked out for a release to actually work).
+`scripts/release.sh` runs `scripts/fetch-sidecars.sh` automatically if
+`vendor/binaries/` is empty — ffmpeg has no self-update path, so a release
+built without real binaries checked out ships without a working ffmpeg
+(yt-dlp self-updates on first launch via `YtdlpUpdater`, so it's less
+critical there).
