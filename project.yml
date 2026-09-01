@@ -30,7 +30,7 @@ targets:
         # regenerated from this file on every `xcodegen generate` (not
         # merged), so editing Info.plist directly gets silently discarded.
         # scripts/release.sh edits these two lines, not the plist.
-        CFBundleShortVersionString: "1.0"
+        CFBundleShortVersionString: "2.0"
         CFBundleVersion: "1"
         LSUIElement: false
         # Sparkle (Phase 7). SUPublicEDKey is a placeholder until a real
@@ -48,7 +48,7 @@ targets:
         # generating this appcast.xml from a manual admin.dangkhoabach.vn
         # upload (installer + Sparkle sig), same as DKB Monitor.
         SUFeedURL: https://updates.dangkhoabach.vn/dkb-downloader/appcast.xml
-        SUPublicEDKey: REPLACE_WITH_GENERATED_ED25519_PUBLIC_KEY
+        SUPublicEDKey: hvmFdDbYmuPf983aZmLLmbqgOIUD8Cqna2g+iJinLLg=
         # Stays off until the real keypair above is in place and at least
         # one release exists — otherwise Sparkle fails every automatic check
         # (no valid feed to reach) and pops an "Unable to Check For Updates"
