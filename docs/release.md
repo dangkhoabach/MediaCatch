@@ -14,47 +14,39 @@ then upload by hand to admin.dangkhoabach.vn): only the build tooling
 changed (`xcodebuild`/`codesign`/Sparkle instead of `cargo tauri build`/
 `tauri-plugin-updater`'s minisign).
 
+No Apple Developer Program membership (the $99/year one) exists for this
+project, same as the old Tauri build — so there's no Developer ID signing
+and no notarization here. Builds are **ad-hoc signed** instead (free,
+built into Xcode/`codesign`), which means end users have to right-click →
+Open on first launch to get past Gatekeeper's "unidentified developer"
+warning — the same experience the Tauri build already had. If a paid
+membership is ever added later, `scripts/release.sh` would need a real
+Developer ID identity + `xcrun notarytool` step added back in.
+
 ## One-time setup
 
-1. **Developer ID signing identity** — must already be in this Mac's login
-   Keychain (`security find-identity -v -p codesigning` should list
-   "Developer ID Application: ...").
-2. **Notarization credentials** — store once as a Keychain profile:
-   ```bash
-   xcrun notarytool store-credentials dkb-release-notarize \
-     --apple-id <your-apple-id-email> \
-     --team-id <APPLE_TEAM_ID> \
-     --password <app-specific-password>
-   ```
-   Generate the app-specific password at appleid.apple.com if you don't
-   already have one saved. `scripts/release.sh` reads the profile name from
-   `$NOTARY_PROFILE`, defaulting to `dkb-release-notarize` — same profile
-   name/setup as DKB Monitor, reusable across both apps.
-3. **Sparkle EdDSA keypair** — not generated yet. Grab the tools from a
-   Sparkle release tarball (version must match `project.yml`'s pinned SPM
-   version) and run:
-   ```bash
-   curl -fsSL -o /tmp/sparkle.tar.xz \
-     https://github.com/sparkle-project/Sparkle/releases/download/2.6.4/Sparkle-2.6.4.tar.xz
-   mkdir -p /tmp/sparkle-tools && tar -xf /tmp/sparkle.tar.xz -C /tmp/sparkle-tools
-   /tmp/sparkle-tools/bin/generate_keys --account dkb-downloader
-   ```
-   The `--account dkb-downloader` flag is **required** — omitting it falls
-   back to the Keychain's default `ed25519` account, which is already
-   occupied by DKB Monitor's key (Sparkle's own docs: "you only need one
-   signing key, no matter how many apps you embed Sparkle in" — true in
-   general, but this repo deliberately keeps a separate key per app for
-   isolation). Paste the printed public key into `SUPublicEDKey` in
-   `project.yml` (currently the placeholder
-   `REPLACE_WITH_GENERATED_ED25519_PUBLIC_KEY`).
-4. **`APPLE_TEAM_ID`** — export it in your shell profile (`~/.zshrc` etc.):
-   ```bash
-   export APPLE_TEAM_ID=XXXXXXXXXX
-   ```
-5. Once steps 1-3 are done and a first version has been uploaded (see
-   below), flip `SUEnableAutomaticChecks` to `true` in `project.yml` — it's
-   `false` until then, otherwise Sparkle pops an "Unable to Check for
-   Updates" alert on every launch since there's no feed to reach yet.
+**Sparkle EdDSA keypair** — not generated yet. Grab the tools from a
+Sparkle release tarball (version must match `project.yml`'s pinned SPM
+version) and run:
+```bash
+curl -fsSL -o /tmp/sparkle.tar.xz \
+  https://github.com/sparkle-project/Sparkle/releases/download/2.6.4/Sparkle-2.6.4.tar.xz
+mkdir -p /tmp/sparkle-tools && tar -xf /tmp/sparkle.tar.xz -C /tmp/sparkle-tools
+/tmp/sparkle-tools/bin/generate_keys --account dkb-downloader
+```
+The `--account dkb-downloader` flag is **required** — omitting it falls
+back to the Keychain's default `ed25519` account, which is already
+occupied by DKB Monitor's key (Sparkle's own docs: "you only need one
+signing key, no matter how many apps you embed Sparkle in" — true in
+general, but this repo deliberately keeps a separate key per app for
+isolation). Paste the printed public key into `SUPublicEDKey` in
+`project.yml` (currently the placeholder
+`REPLACE_WITH_GENERATED_ED25519_PUBLIC_KEY`).
+
+Once that's done and a first version has been uploaded (see below), flip
+`SUEnableAutomaticChecks` to `true` in `project.yml` — it's `false` until
+then, otherwise Sparkle pops an "Unable to Check for Updates" alert on
+every launch since there's no feed to reach yet.
 
 ## Cutting a release
 
@@ -63,8 +55,8 @@ changed (`xcodebuild`/`codesign`/Sparkle instead of `cargo tauri build`/
 ```
 
 Fetches sidecar binaries if missing, then runs: `swift test` →
-`xcodegen generate` → archive → Developer ID sign → notarize + staple → DMG
-→ Sparkle-sign (under the `dkb-downloader` account). Output lands in
+`xcodegen generate` → ad-hoc-signed Release build → DMG → Sparkle-sign
+(under the `dkb-downloader` account). Output lands in
 `release-output/<version>/` (gitignored): the `.dmg` and its `.sig` (the
 raw EdDSA signature, ready to paste as-is).
 
