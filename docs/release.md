@@ -25,25 +25,27 @@ Developer ID identity + `xcrun notarytool` step added back in.
 
 ## One-time setup
 
-**Sparkle EdDSA keypair** — not generated yet. Grab the tools from a
-Sparkle release tarball (version must match `project.yml`'s pinned SPM
-version) and run:
-```bash
-curl -fsSL -o /tmp/sparkle.tar.xz \
-  https://github.com/sparkle-project/Sparkle/releases/download/2.6.4/Sparkle-2.6.4.tar.xz
-mkdir -p /tmp/sparkle-tools && tar -xf /tmp/sparkle.tar.xz -C /tmp/sparkle-tools
-/tmp/sparkle-tools/bin/generate_keys --account dkb-downloader
-```
-The `--account dkb-downloader` flag is **required** — omitting it falls
-back to the Keychain's default `ed25519` account, which is already
-occupied by DKB Monitor's key (Sparkle's own docs: "you only need one
-signing key, no matter how many apps you embed Sparkle in" — true in
-general, but this repo deliberately keeps a separate key per app for
-isolation). Paste the printed public key into `SUPublicEDKey` in
-`project.yml` (currently the placeholder
-`REPLACE_WITH_GENERATED_ED25519_PUBLIC_KEY`).
+1. **Sparkle EdDSA keypair** — already generated, under the `dkb-downloader`
+   Keychain account (kept distinct from DKB Monitor's, which uses the
+   default account); `SUPublicEDKey` in `project.yml` is already the real
+   public key. Nothing to do here unless that key is ever rotated - if it
+   ever needs regenerating, the exact command is:
+   ```bash
+   .sparkle-tools/bin/generate_keys --account dkb-downloader
+   ```
+   The `--account dkb-downloader` flag is **required** — omitting it falls
+   back to the Keychain's default `ed25519` account, which is already
+   occupied by DKB Monitor's key (Sparkle's own docs: "you only need one
+   signing key, no matter how many apps you embed Sparkle in" — true in
+   general, but this repo deliberately keeps a separate key per app for
+   isolation).
+2. **`create-dmg`** — styles the installer DMG's Finder window (icon layout
+   + Applications drop link) instead of a bare `hdiutil` copy:
+   ```bash
+   brew install create-dmg
+   ```
 
-Once that's done and a first version has been uploaded (see below), flip
+Once a first version has been uploaded (see below), flip
 `SUEnableAutomaticChecks` to `true` in `project.yml` — it's `false` until
 then, otherwise Sparkle pops an "Unable to Check for Updates" alert on
 every launch since there's no feed to reach yet.

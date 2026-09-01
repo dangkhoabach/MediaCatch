@@ -11,6 +11,8 @@
 #     account (kept distinct from DKB Monitor's, which uses the default
 #     account) — see docs/release.md for the exact one-time generate_keys
 #     command.
+#   - `brew install create-dmg` (styles the installer DMG's Finder window -
+#     icon layout + Applications drop link - instead of hdiutil's bare copy).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -21,6 +23,8 @@ PROJECT_YML="project.yml"
 SPARKLE_ACCOUNT="dkb-downloader"
 SPARKLE_VERSION="2.6.4"
 SPARKLE_TOOLS_DIR=".sparkle-tools"
+
+command -v create-dmg >/dev/null || { echo "Error: create-dmg not found. Run: brew install create-dmg" >&2; exit 1; }
 
 if [ ! -f vendor/binaries/yt-dlp-aarch64-apple-darwin ] || [ ! -f vendor/binaries/ffmpeg-x86_64-apple-darwin ]; then
   echo "==> Fetching yt-dlp/ffmpeg sidecar binaries"
@@ -68,13 +72,18 @@ xcodebuild build \
 APP_PATH="$BUILD_DIR/Build/Products/Release/$APP_NAME.app"
 
 echo "==> Creating DMG"
-DMG_ROOT="$OUT_DIR/dmg-root"
-rm -rf "$DMG_ROOT"
-mkdir -p "$DMG_ROOT"
-cp -R "$APP_PATH" "$DMG_ROOT/"
-ln -sf /Applications "$DMG_ROOT/Applications"
 DMG_PATH="$OUT_DIR/DKB-Downloader-$VERSION.dmg"
-hdiutil create -volname "$APP_NAME" -srcfolder "$DMG_ROOT" -ov -format UDZO "$DMG_PATH"
+rm -f "$DMG_PATH"
+create-dmg \
+  --volname "$APP_NAME" \
+  --window-pos 200 120 \
+  --window-size 660 400 \
+  --icon-size 100 \
+  --icon "$APP_NAME.app" 160 185 \
+  --hide-extension "$APP_NAME.app" \
+  --app-drop-link 460 185 \
+  "$DMG_PATH" \
+  "$APP_PATH"
 
 echo "==> Signing update with Sparkle"
 if [ ! -x "$SPARKLE_TOOLS_DIR/bin/sign_update" ]; then
