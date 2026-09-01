@@ -34,17 +34,37 @@ struct ContentView: View {
             .navigationSplitViewColumnWidth(min: 160, ideal: 180)
             .focused($sidebarFocused)
         } detail: {
-            switch navigation.selectedSection {
-            case .home:
+            // Home/Queue/Library/Watch stay mounted permanently (ZStack +
+            // opacity, not a `switch`) instead of being torn down and
+            // recreated every time the sidebar selection changes — a
+            // `switch` drops the non-selected case's view (and its
+            // `@State private var viewModel`) from the tree entirely, so a
+            // Home fetch in progress (or Watch's typed-but-unsubmitted URL,
+            // Library's search text) reset to empty the moment you switched
+            // away and back. Keeping them alive also lets Queue/Library's
+            // background poll loops (`.task { viewModel.start() }`) keep
+            // running while another tab is in front. Settings is layered on
+            // top instead of replacing the other four: it's pure
+            // `@AppStorage`, nothing transient to lose, so recreating it
+            // lazily via `if` is simpler and free — but it must overlay
+            // rather than swap out, or switching to Settings and back would
+            // tear the other four down all the same.
+            ZStack {
                 HomeView()
-            case .queue:
+                    .opacity(navigation.selectedSection == .home ? 1 : 0)
+                    .allowsHitTesting(navigation.selectedSection == .home)
                 QueueView()
-            case .library:
+                    .opacity(navigation.selectedSection == .queue ? 1 : 0)
+                    .allowsHitTesting(navigation.selectedSection == .queue)
                 LibraryView()
-            case .watch:
+                    .opacity(navigation.selectedSection == .library ? 1 : 0)
+                    .allowsHitTesting(navigation.selectedSection == .library)
                 WatchView()
-            case .settings:
-                SettingsView()
+                    .opacity(navigation.selectedSection == .watch ? 1 : 0)
+                    .allowsHitTesting(navigation.selectedSection == .watch)
+                if navigation.selectedSection == .settings {
+                    SettingsView()
+                }
             }
         }
         .frame(minWidth: 700, minHeight: 420)

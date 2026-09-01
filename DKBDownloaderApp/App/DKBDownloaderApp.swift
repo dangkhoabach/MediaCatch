@@ -15,11 +15,27 @@ struct DKBDownloaderApp: App {
         }
     }
 
+    // `.preferredColorScheme(nil)` is meant to hand control back to the OS,
+    // but on an already-visible NSWindow that previously had an explicit
+    // scheme applied, SwiftUI doesn't reliably clear the appearance it set
+    // under the hood - switching Dark/Light -> System silently no-ops.
+    // Driving `NSApp.appearance` directly (nil = follow the system) doesn't
+    // have that staleness problem.
+    private func applyAppearance() {
+        switch theme {
+        case "light": NSApp.appearance = NSAppearance(named: .aqua)
+        case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
+        default: NSApp.appearance = nil
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(colorScheme)
                 .background(WindowAccessor(delegate: windowDelegate))
+                .onAppear { applyAppearance() }
+                .onChange(of: theme) { _, _ in applyAppearance() }
         }
         .commands {
             // Standard Sparkle placement: right under "About DKB Downloader"
