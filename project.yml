@@ -49,13 +49,9 @@ targets:
         # upload (installer + Sparkle sig), same as DKB Monitor.
         SUFeedURL: https://updates.dangkhoabach.vn/dkb-downloader/appcast.xml
         SUPublicEDKey: hvmFdDbYmuPf983aZmLLmbqgOIUD8Cqna2g+iJinLLg=
-        # Stays off until the real keypair above is in place and at least
-        # one release exists — otherwise Sparkle fails every automatic check
-        # (no valid feed to reach) and pops an "Unable to Check For Updates"
-        # alert on every single launch (bug hit and fixed the same way in
-        # DKB Monitor's Phase 10). "Check for Updates…" in the menu bar
-        # still works manually in the meantime.
-        SUEnableAutomaticChecks: false
+        # First release (2.0.2) is live at SUFeedURL, so automatic checks
+        # are safe to enable now — Sparkle has a real appcast to reach.
+        SUEnableAutomaticChecks: true
         SUScheduledCheckInterval: 86400
     entitlements:
       path: DKBDownloaderApp/DKBDownloaderApp.entitlements
