@@ -17,6 +17,7 @@ private func formatDuration(_ seconds: Double?) -> String {
 
 struct HomeView: View {
     @State private var viewModel = HomeViewModel()
+    @Bindable private var navigation = AppNavigationState.shared
 
     var body: some View {
         ScrollView {
@@ -45,13 +46,19 @@ struct HomeView: View {
         // system and falls back to a generic floating switch instead of the
         // native round toolbar-button chrome (and its Liquid Glass material
         // on macOS 26+). The icon itself reflects on/off state.
+        // Guarded the same way as LibraryView's toolbar: `.toolbar` content
+        // is collected regardless of this view's own opacity, and with all
+        // four tabs staying mounted at once it would otherwise keep showing
+        // up while another tab is active.
         .toolbar {
-            ToolbarItemGroup(placement: .automatic) {
-                Button {
-                    viewModel.batchMode.toggle()
-                    viewModel.batchItems = []
-                } label: {
-                    Label(t("home.batchMode"), systemImage: viewModel.batchMode ? "list.bullet.rectangle.fill" : "list.bullet.rectangle")
+            if navigation.selectedSection == .home {
+                ToolbarItemGroup(placement: .automatic) {
+                    Button {
+                        viewModel.batchMode.toggle()
+                        viewModel.batchItems = []
+                    } label: {
+                        Label(t("home.batchMode"), systemImage: viewModel.batchMode ? "list.bullet.rectangle.fill" : "list.bullet.rectangle")
+                    }
                 }
             }
         }

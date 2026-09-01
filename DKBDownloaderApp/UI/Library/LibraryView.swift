@@ -22,6 +22,7 @@ private func statusColor(_ status: DownloadStatus) -> Color {
 
 struct LibraryView: View {
     @State private var viewModel = LibraryViewModel()
+    @Bindable private var navigation = AppNavigationState.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -38,35 +39,44 @@ struct LibraryView: View {
         // A real `.toolbar` (merges into the window's title bar chrome and
         // picks up the Liquid Glass toolbar material on macOS 26+ for free)
         // instead of a Picker floating in the content area.
+        //
+        // `.toolbar` content is collected from every view in the tree via a
+        // preference key, not gated by that view's own visibility/opacity —
+        // now that ContentView keeps all four tabs mounted at once (so their
+        // state survives a sidebar switch), this view's toolbar would keep
+        // contributing even while another tab is on screen unless it's
+        // explicitly guarded by whether Library is the active tab.
         .toolbar {
-            ToolbarItemGroup(placement: .automatic) {
-                Picker("", selection: $viewModel.tab) {
-                    Text(t("library.tabDownloads")).tag(LibraryViewModel.Tab.downloads)
-                    Text(t("library.tabRecent")).tag(LibraryViewModel.Tab.recent)
-                }
-                .pickerStyle(.segmented)
-            }
-
-            // Without this, macOS 26's Liquid Glass toolbar fuses the
-            // segmented Picker above with the search field/Clear button
-            // below into one shared glass container even though they're
-            // separate `ToolbarItemGroup`s — the same merging DKB Monitor
-            // documented and worked around with this exact API.
-            if #available(macOS 26.0, *) {
-                ToolbarSpacer(.fixed, placement: .automatic)
-            }
-
-            if viewModel.tab == .recent {
+            if navigation.selectedSection == .library {
                 ToolbarItemGroup(placement: .automatic) {
-                    NativeSearchField(text: $viewModel.recentSearch, placeholder: t("library.recentSearchPlaceholder"))
-                        .frame(width: 200)
-                    if !viewModel.recentLinks.isEmpty {
-                        // Still a plain, unstyled `Button` — its native pill
-                        // chrome comes from the system, not from us — just
-                        // padding the label text itself so a short word like
-                        // "Clear all" isn't cramped against the pill's edges.
-                        Button { viewModel.clearRecent() } label: {
-                            Text(t("library.recentClear")).padding(.horizontal, 4)
+                    Picker("", selection: $viewModel.tab) {
+                        Text(t("library.tabDownloads")).tag(LibraryViewModel.Tab.downloads)
+                        Text(t("library.tabRecent")).tag(LibraryViewModel.Tab.recent)
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                // Without this, macOS 26's Liquid Glass toolbar fuses the
+                // segmented Picker above with the search field/Clear button
+                // below into one shared glass container even though they're
+                // separate `ToolbarItemGroup`s — the same merging DKB Monitor
+                // documented and worked around with this exact API.
+                if #available(macOS 26.0, *) {
+                    ToolbarSpacer(.fixed, placement: .automatic)
+                }
+
+                if viewModel.tab == .recent {
+                    ToolbarItemGroup(placement: .automatic) {
+                        NativeSearchField(text: $viewModel.recentSearch, placeholder: t("library.recentSearchPlaceholder"))
+                            .frame(width: 200)
+                        if !viewModel.recentLinks.isEmpty {
+                            // Still a plain, unstyled `Button` — its native pill
+                            // chrome comes from the system, not from us — just
+                            // padding the label text itself so a short word like
+                            // "Clear all" isn't cramped against the pill's edges.
+                            Button { viewModel.clearRecent() } label: {
+                                Text(t("library.recentClear")).padding(.horizontal, 4)
+                            }
                         }
                     }
                 }
