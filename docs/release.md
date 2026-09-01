@@ -54,11 +54,15 @@ every launch since there's no feed to reach yet.
 ./scripts/release.sh
 ```
 
-Fetches sidecar binaries if missing, then runs: `swift test` →
-`xcodegen generate` → ad-hoc-signed Release build → DMG → Sparkle-sign
-(under the `dkb-downloader` account). Output lands in
-`release-output/<version>/` (gitignored): the `.dmg` and its `.sig` (the
-raw EdDSA signature, ready to paste as-is).
+Fetches sidecar binaries if missing. Prompts for the version as
+`MAJOR.MINOR.BUILD` (e.g. `2.0.1` → marketing version `2.0`, build `1`;
+Enter keeps both as they are), writes it into `project.yml` (the actual
+source of truth — editing `Info.plist` directly gets silently discarded by
+the next `xcodegen generate`), then runs: `swift test` → `xcodegen
+generate` → ad-hoc-signed Release build → DMG → Sparkle-sign (under the
+`dkb-downloader` account). Output lands in `release-output/<version>/`
+(gitignored): the `.dmg` and its `.sig` (the raw EdDSA signature, ready to
+paste as-is).
 
 ## Uploading a release
 
