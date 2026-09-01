@@ -39,11 +39,16 @@ Developer ID identity + `xcrun notarytool` step added back in.
    signing key, no matter how many apps you embed Sparkle in" — true in
    general, but this repo deliberately keeps a separate key per app for
    isolation).
-2. **`create-dmg`** — styles the installer DMG's Finder window (icon layout
-   + Applications drop link) instead of a bare `hdiutil` copy:
+2. **`create-dmg`** — styles the installer DMG's Finder window (icon layout,
+   Applications drop link, and background) instead of a bare `hdiutil` copy:
    ```bash
    brew install create-dmg
    ```
+3. **`scripts/dmg-background.png`** — already committed (a dark
+   particle-network image matching dangkhoabach.vn's site style, cyan
+   accent). Nothing to do here unless the look needs to change — regenerate
+   with `python3 scripts/generate-dmg-background.py` (needs Pillow: `pip3
+   install pillow`).
 
 Once a first version has been uploaded (see below), flip
 `SUEnableAutomaticChecks` to `true` in `project.yml` — it's `false` until
