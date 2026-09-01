@@ -1,12 +1,10 @@
 # Releasing DKB Downloader (native, macOS)
 
 This is the release process for the Swift rewrite in `native/` — see
-`../../docs/swift-native-port-plan.md` for the full port plan. It replaces
-`release/README.md`'s Tauri process (admin panel upload, per-machine
-scripts, Windows) once Phase 12 (Cutover) deletes `src/`/`src-tauri/`;
-**until then, `release/README.md` is still the process for the app that's
-actually shipping** — this doc describes the pipeline for when the native
-app cuts over, not something to run in parallel with it today.
+`../../docs/swift-native-port-plan.md` for the full port plan. Cutover is
+complete: the old Tauri tree (`src/`, `src-tauri/`, `release/README.md`'s
+admin-panel/per-machine/Windows process) has been removed. This is now the
+only release process for this app.
 
 ## How it works
 
@@ -59,13 +57,13 @@ scheduled background check both work automatically — no admin panel step.
 
 ## Sidecar binaries (yt-dlp, ffmpeg)
 
-Same seed binaries as the Tauri build (D12 — bundled as-is, not rebuilt):
-`native/project.yml`'s `postbuildScripts` copies
-`src-tauri/binaries/yt-dlp-aarch64-apple-darwin` and
+Same seed binaries as the old Tauri build (D12 — bundled as-is, not
+rebuilt): `native/project.yml`'s `postbuildScripts` copies
+`vendor/binaries/yt-dlp-aarch64-apple-darwin` and
 `ffmpeg-x86_64-apple-darwin` into `Contents/Resources/bin/` at build time.
-Run `scripts/fetch-sidecars.sh` first if `src-tauri/binaries/` is empty
-(gitignored, not committed — see that script's own comments) — CI does not
-run this automatically, so a release built without it ships without a
+Run `native/scripts/fetch-sidecars.sh` first if `native/vendor/binaries/` is
+empty (gitignored, not committed — see that script's own comments) — CI does
+not run this automatically, so a release built without it ships without a
 working yt-dlp/ffmpeg until `YtdlpUpdater` self-updates yt-dlp on first
 launch (ffmpeg has no such self-update path, so CI must have real binaries
 checked out for a release to actually work).

@@ -58,7 +58,7 @@ targets:
     postbuildScripts:
       # D12: bundle the existing yt-dlp/ffmpeg sidecar binaries as-is into
       # Contents/Resources/bin — no rebuild/re-download. Both are fetched by
-      # scripts/fetch-sidecars.sh into src-tauri/binaries/, gitignored there
+      # scripts/fetch-sidecars.sh into vendor/binaries/, gitignored there
       # (large, self-updating) so a fresh CI checkout won't have them; this
       # script skips (with a warning) rather than failing the build when
       # they're absent — native-ci.yml only needs the app to compile/link,
@@ -67,7 +67,7 @@ targets:
         basedOnDependencyAnalysis: false
         script: |
           set -euo pipefail
-          BINARIES_DIR="${SRCROOT}/../src-tauri/binaries"
+          BINARIES_DIR="${SRCROOT}/vendor/binaries"
           DEST="${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/bin"
           mkdir -p "$DEST"
 

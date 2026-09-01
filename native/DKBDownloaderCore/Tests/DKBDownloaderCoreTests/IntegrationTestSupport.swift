@@ -18,7 +18,7 @@ func ytdlpBinaryURL() -> URL? {
         .deletingLastPathComponent()
         .deletingLastPathComponent()
         .deletingLastPathComponent()
-    let url = repoRoot.appendingPathComponent("src-tauri/binaries/\(name)")
+    let url = repoRoot.appendingPathComponent("native/vendor/binaries/\(name)")
     return FileManager.default.fileExists(atPath: url.path) ? url : nil
 }
 
