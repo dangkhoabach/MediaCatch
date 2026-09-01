@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Fetches the yt-dlp and ffmpeg binaries bundled into the app's
-# Contents/Resources/bin (native/vendor/binaries/). Not committed to git
-# (see native/.gitignore) since they're large and change with every
-# release — yt-dlp also self-updates its own copy at runtime, this is only
-# the offline-capable seed.
+# Contents/Resources/bin (vendor/binaries/). Not committed to git (see
+# .gitignore) since they're large and change with every release — yt-dlp
+# also self-updates its own copy at runtime, this is only the
+# offline-capable seed.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

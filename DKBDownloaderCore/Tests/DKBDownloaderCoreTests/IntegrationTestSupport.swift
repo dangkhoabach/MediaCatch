@@ -10,15 +10,14 @@ func ytdlpBinaryURL() -> URL? {
     #else
     let name = "yt-dlp-x86_64-apple-darwin"
     #endif
-    // <file>.swift -> DKBDownloaderCoreTests/ -> Tests/ -> DKBDownloaderCore/ -> native/ -> repo root
+    // <file>.swift -> DKBDownloaderCoreTests/ -> Tests/ -> DKBDownloaderCore/ -> repo root
     let thisFile = URL(fileURLWithPath: #filePath)
     let repoRoot = thisFile
         .deletingLastPathComponent()
         .deletingLastPathComponent()
         .deletingLastPathComponent()
         .deletingLastPathComponent()
-        .deletingLastPathComponent()
-    let url = repoRoot.appendingPathComponent("native/vendor/binaries/\(name)")
+    let url = repoRoot.appendingPathComponent("vendor/binaries/\(name)")
     return FileManager.default.fileExists(atPath: url.path) ? url : nil
 }
 

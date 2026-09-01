@@ -20,22 +20,19 @@ a channel.
 ## Project structure
 
 ```
-native/
-  DKBDownloaderApp/     App target: SwiftUI views, App/AppKit glue
-  DKBDownloaderCore/    Swift Package: models, DB, download engine, tests
-  scripts/              fetch-sidecars.sh (downloads yt-dlp/ffmpeg seed binaries)
-  vendor/binaries/      Sidecar binary seed (gitignored, fetched locally/in CI)
-  docs/                 Release process, port plan
-docs/                   Design/porting notes
+DKBDownloaderApp/     App target: SwiftUI views, App/AppKit glue
+DKBDownloaderCore/    Swift Package: models, DB, download engine, tests
+scripts/              fetch-sidecars.sh (downloads yt-dlp/ffmpeg seed binaries)
+vendor/binaries/      Sidecar binary seed (gitignored, fetched locally/in CI)
+docs/                 Design/porting notes, release process
 ```
 
 ## Building
 
 ```bash
-cd native
 ./scripts/fetch-sidecars.sh   # first time only, or to refresh yt-dlp/ffmpeg
 xcodegen generate
 xcodebuild -project DKBDownloaderNative.xcodeproj -scheme DKBDownloaderApp -configuration Debug build
 ```
 
-See `native/docs/release.md` for the release/signing/notarization process.
+See `docs/release.md` for the release/signing/notarization process.

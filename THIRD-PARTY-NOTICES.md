@@ -1,8 +1,8 @@
 # Third-Party Notices
 
 This app bundles the following third-party binaries as sidecars
-(`native/vendor/binaries/`, fetched via `native/scripts/fetch-sidecars.sh`,
-not part of this repo's own source).
+(`vendor/binaries/`, fetched via `scripts/fetch-sidecars.sh`, not part of
+this repo's own source).
 
 ## yt-dlp
 
