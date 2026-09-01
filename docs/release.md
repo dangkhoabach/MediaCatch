@@ -12,16 +12,20 @@ the port). This is now the only release process for this app.
 
 Pushing a `v*` tag triggers `.github/workflows/native-release.yml` on a
 GitHub-hosted macOS runner: `swift test` → `xcodegen generate` → archive →
-Developer ID sign → notarize + staple → DMG → Sparkle-sign + generate
-`appcast.xml` → publish a GitHub Release with both files attached. Nothing
-runs on a local machine — no per-platform build scripts, no manual upload
-panel (there's no Windows build; this app is macOS-only, per D3/D11 in the
-port plan).
+Developer ID sign → notarize + staple → DMG → Sparkle-sign, then uploads the
+DMG + its `.sig` as workflow artifacts. This project doesn't publish to
+GitHub Releases — publishing from there is manual, same as the old Tauri
+app's process: download the two artifacts and upload them via
+admin.dangkhoabach.vn's web UI for the `dkb-downloader` app (installer =
+the `.dmg`, Sparkle signature = the contents of the `.sig`). MyWebsiteAPI's
+`AppReleaseService` generates `appcast.xml` from that upload (same feature
+added for DKB Monitor).
 
-`SUFeedURL` in `project.yml` already points at
-`github.com/dangkhoabach/DKB-Downloader/releases/latest/download/appcast.xml`,
-so once one release exists, Sparkle's "Check for Updates…" and the
-scheduled background check both work automatically — no admin panel step.
+`SUFeedURL` in `project.yml` points at
+`updates.dangkhoabach.vn/dkb-downloader/appcast.xml` — the same domain the
+old Tauri app's updater used, just a different file. Once the first version
+has been uploaded via admin.dangkhoabach.vn, Sparkle's "Check for Updates…"
+and the scheduled background check both work automatically.
 
 ## One-time setup (not done yet — see native-release.yml's header comment)
 
@@ -55,7 +59,10 @@ scheduled background check both work automatically — no admin panel step.
    git push origin vX.Y.Z
    ```
 3. Watch the `Native (Swift) Release` workflow run in GitHub Actions. On
-   success, the GitHub Release page has the DMG and `appcast.xml` attached.
+   success, download its `DKB-Downloader-X.Y.Z` artifact (DMG + `.sig`).
+4. Upload the DMG + `.sig` via admin.dangkhoabach.vn's web UI for the
+   `dkb-downloader` app — this writes `updates.dangkhoabach.vn`'s
+   `appcast.xml`, which `SUFeedURL` points at.
 
 ## Sidecar binaries (yt-dlp, ffmpeg)
 

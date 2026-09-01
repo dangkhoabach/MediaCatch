@@ -31,12 +31,12 @@ targets:
         # EdDSA keypair is generated (see .github/workflows/native-release.yml's
         # header comment for the exact one-time steps) — private half goes
         # into the SPARKLE_ED_PRIVATE_KEY GitHub Actions secret, never here.
-        # SUFeedURL points at GitHub Releases: admin.dangkhoabach.vn (the
-        # Tauri updater's current endpoint) has no upload API, only a manual
-        # web UI (confirmed for DKB-Monitor, same release/README.md process
-        # this app already uses) — GitHub Releases is fully automated
-        # end-to-end by native-release.yml instead.
-        SUFeedURL: https://github.com/dangkhoabach/DKB-Downloader/releases/latest/download/appcast.xml
+        # Same domain the old Tauri app's updater used (updates.dangkhoabach.vn),
+        # just a different file — not GitHub Releases, this project doesn't
+        # publish there. MyWebsiteAPI's AppReleaseService now supports
+        # generating this appcast.xml from a manual admin.dangkhoabach.vn
+        # upload (installer + Sparkle sig), same as DKB Monitor.
+        SUFeedURL: https://updates.dangkhoabach.vn/dkb-downloader/appcast.xml
         SUPublicEDKey: REPLACE_WITH_GENERATED_ED25519_PUBLIC_KEY
         # Stays off until the real keypair above is in place and at least
         # one release exists — otherwise Sparkle fails every automatic check
