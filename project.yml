@@ -7,7 +7,16 @@ settings:
   MACOSX_DEPLOYMENT_TARGET: "14.0"
   SWIFT_VERSION: "6.0"
   CODE_SIGN_STYLE: Automatic
-  ENABLE_HARDENED_RUNTIME: YES
+  # NO for local/ad-hoc dev builds: ad-hoc signing has no Team ID, and
+  # Hardened Runtime's Library Validation rejects loading any embedded
+  # framework (Sparkle.framework) whose signature's Team ID doesn't match
+  # the host's — which ad-hoc-signed frameworks never satisfy, even against
+  # an ad-hoc-signed host. Confirmed via crash repro on 2026-09-02: enabling
+  # this broke every app launch with a DYLD "Library not loaded: Sparkle...
+  # different Team IDs" abort before any app code even runs. Only flip this
+  # to YES once builds are actually signed with a real Developer ID
+  # (release/notarize pipeline), not for CODE_SIGN_STYLE: Automatic here.
+  ENABLE_HARDENED_RUNTIME: NO
 packages:
   DKBDownloaderCore:
     path: DKBDownloaderCore
