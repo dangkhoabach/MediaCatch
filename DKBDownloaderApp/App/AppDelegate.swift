@@ -14,6 +14,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 
+    /// Without this, quitting (Cmd+Q or a kill) mid-download leaves the
+    /// yt-dlp/ffmpeg child process orphaned, still writing into the temp dir
+    /// indefinitely. `.terminateLater` holds the quit until `terminateAll()`
+    /// finishes, then replies to let AppKit actually terminate.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        Task {
+            await AppServices.downloadManager.terminateAll()
+            sender.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
+    }
+
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         WindowPresenter.showMainWindow()
         // Reopen is already fully handled above (existing window is unhidden and

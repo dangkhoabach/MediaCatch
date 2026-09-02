@@ -7,7 +7,7 @@ settings:
   MACOSX_DEPLOYMENT_TARGET: "14.0"
   SWIFT_VERSION: "6.0"
   CODE_SIGN_STYLE: Automatic
-  ENABLE_HARDENED_RUNTIME: NO
+  ENABLE_HARDENED_RUNTIME: YES
 packages:
   DKBDownloaderCore:
     path: DKBDownloaderCore
@@ -30,8 +30,8 @@ targets:
         # regenerated from this file on every `xcodegen generate` (not
         # merged), so editing Info.plist directly gets silently discarded.
         # scripts/release.sh edits these two lines, not the plist.
-        CFBundleShortVersionString: "2.0.2"
-        CFBundleVersion: "2.0.2"
+        CFBundleShortVersionString: "2.0.3"
+        CFBundleVersion: "2.0.3"
         LSUIElement: false
         # Sparkle (Phase 7). SUPublicEDKey is a placeholder until a real
         # EdDSA keypair is generated — run (see docs/release.md):

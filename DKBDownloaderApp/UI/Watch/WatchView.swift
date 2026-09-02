@@ -3,6 +3,7 @@ import SwiftUI
 
 struct WatchView: View {
     @State private var viewModel = WatchViewModel()
+    @State private var pendingRemoveChannel: WatchedChannel?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -40,6 +41,20 @@ struct WatchView: View {
             }
         }
         .task { viewModel.refresh() }
+        .confirmationDialog(
+            t("watch.removeConfirmTitle"),
+            isPresented: Binding(
+                get: { pendingRemoveChannel != nil },
+                set: { if !$0 { pendingRemoveChannel = nil } }
+            )
+        ) {
+            Button(t("watch.remove"), role: .destructive) {
+                if let channel = pendingRemoveChannel {
+                    viewModel.remove(channel.id ?? -1)
+                }
+                pendingRemoveChannel = nil
+            }
+        }
     }
 
     private func row(_ channel: WatchedChannel) -> some View {
@@ -59,7 +74,10 @@ struct WatchView: View {
             ))
             .toggleStyle(.switch)
             .labelsHidden()
-            Button { viewModel.remove(channel.id ?? -1) } label: { Image(systemName: "trash") }.buttonStyle(.plain)
+            .accessibilityLabel(t("watch.enabledToggle"))
+            Button { pendingRemoveChannel = channel } label: { Image(systemName: "trash") }
+                .buttonStyle(.plain)
+                .accessibilityLabel(t("watch.remove"))
         }
         .padding(.vertical, 6)
     }

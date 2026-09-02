@@ -64,6 +64,7 @@ public actor DownloadManager {
         var continuation: AsyncStream<DownloadEvent>.Continuation!
         self.events = AsyncStream { continuation = $0 }
         self.eventsContinuation = continuation
+        try? downloadRepo.reconcileInterrupted()
     }
 
     @discardableResult
@@ -86,6 +87,15 @@ public actor DownloadManager {
     public func cancel(downloadId: Int64) {
         canceledIds.insert(downloadId)
         runners[downloadId]?.terminate()
+    }
+
+    /// Terminates every in-flight yt-dlp/ffmpeg process without touching DB
+    /// state — called from `applicationWillTerminate` so app quit doesn't
+    /// leave orphaned child processes running in the background.
+    public func terminateAll() {
+        for runner in runners.values {
+            runner.terminate()
+        }
     }
 
     /// `SIGSTOP`/`SIGCONT` on the running process — see Phase 0's PoC.

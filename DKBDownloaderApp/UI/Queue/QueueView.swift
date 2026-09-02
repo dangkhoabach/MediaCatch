@@ -27,8 +27,11 @@ struct QueueView: View {
 
     private func percent(from progress: DownloadProgress?) -> Double {
         guard let progress else { return 0 }
-        let digits = progress.percent.filter { $0.isNumber || $0 == "." }
-        return Double(digits) ?? 0
+        let cleaned = progress.percent
+            .trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: "%", with: "")
+            .replacingOccurrences(of: ",", with: ".")
+        return Double(cleaned) ?? 0
     }
 
     @ViewBuilder
@@ -46,12 +49,14 @@ struct QueueView: View {
                     Image(systemName: viewModel.isPaused(id) ? "play.fill" : "pause.fill")
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(viewModel.isPaused(id) ? t("queue.resume") : t("queue.pause"))
                 Button {
                     Task { await viewModel.cancel(id) }
                 } label: {
                     Image(systemName: "xmark")
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(t("queue.cancel"))
             }
             ProgressView(value: percent(from: progress), total: 100)
             HStack {

@@ -23,6 +23,9 @@ private func statusColor(_ status: DownloadStatus) -> Color {
 struct LibraryView: View {
     @State private var viewModel = LibraryViewModel()
     @Bindable private var navigation = AppNavigationState.shared
+    @State private var pendingDeleteDownload: Download?
+    @State private var pendingDeleteRecent: UrlHistoryEntry?
+    @State private var showClearRecentConfirm = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -74,13 +77,47 @@ struct LibraryView: View {
                             // chrome comes from the system, not from us — just
                             // padding the label text itself so a short word like
                             // "Clear all" isn't cramped against the pill's edges.
-                            Button { viewModel.clearRecent() } label: {
+                            Button { showClearRecentConfirm = true } label: {
                                 Text(t("library.recentClear")).padding(.horizontal, 4)
                             }
                         }
                     }
                 }
             }
+        }
+        .confirmationDialog(
+            t("library.deleteDownloadConfirmTitle"),
+            isPresented: Binding(
+                get: { pendingDeleteDownload != nil },
+                set: { if !$0 { pendingDeleteDownload = nil } }
+            )
+        ) {
+            Button(t("library.delete"), role: .destructive) {
+                if let record = pendingDeleteDownload {
+                    viewModel.delete(record.id ?? -1, deleteFile: false)
+                }
+                pendingDeleteDownload = nil
+            }
+        }
+        .confirmationDialog(
+            t("library.deleteRecentConfirmTitle"),
+            isPresented: Binding(
+                get: { pendingDeleteRecent != nil },
+                set: { if !$0 { pendingDeleteRecent = nil } }
+            )
+        ) {
+            Button(t("library.delete"), role: .destructive) {
+                if let entry = pendingDeleteRecent {
+                    viewModel.deleteRecent(entry.id ?? -1)
+                }
+                pendingDeleteRecent = nil
+            }
+        }
+        .confirmationDialog(
+            t("library.recentClearConfirmTitle"),
+            isPresented: $showClearRecentConfirm
+        ) {
+            Button(t("library.recentClear"), role: .destructive) { viewModel.clearRecent() }
         }
     }
 
@@ -114,13 +151,18 @@ struct LibraryView: View {
                 .foregroundStyle(statusColor(record.status))
 
             if record.status == .completed, let path = record.outputPath {
-                Button { viewModel.open(path) } label: { Image(systemName: "play.fill") }.buttonStyle(.plain)
-                Button { viewModel.reveal(path) } label: { Image(systemName: "folder") }.buttonStyle(.plain)
+                Button { viewModel.open(path) } label: { Image(systemName: "play.fill") }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(t("library.play"))
+                Button { viewModel.reveal(path) } label: { Image(systemName: "folder") }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(t("library.reveal"))
             }
-            Button { viewModel.delete(record.id ?? -1, deleteFile: false) } label: {
+            Button { pendingDeleteDownload = record } label: {
                 Image(systemName: "trash")
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(t("library.delete"))
         }
         .padding(.vertical, 6)
     }
@@ -148,8 +190,12 @@ struct LibraryView: View {
                 .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
-            Button { viewModel.refetch(entry.url) } label: { Image(systemName: "arrow.clockwise") }.buttonStyle(.plain)
-            Button { viewModel.deleteRecent(entry.id ?? -1) } label: { Image(systemName: "trash") }.buttonStyle(.plain)
+            Button { viewModel.refetch(entry.url) } label: { Image(systemName: "arrow.clockwise") }
+                .buttonStyle(.plain)
+                .accessibilityLabel(t("library.refetch"))
+            Button { pendingDeleteRecent = entry } label: { Image(systemName: "trash") }
+                .buttonStyle(.plain)
+                .accessibilityLabel(t("library.delete"))
         }
         .padding(.vertical, 6)
     }

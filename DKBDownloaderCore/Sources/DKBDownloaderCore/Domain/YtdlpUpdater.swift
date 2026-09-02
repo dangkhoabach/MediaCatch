@@ -1,8 +1,14 @@
+import CryptoKit
 import Foundation
 
 struct GithubRelease: Decodable {
     let tagName: String
     enum CodingKeys: String, CodingKey { case tagName = "tag_name" }
+}
+
+enum YtdlpUpdaterError: Error, Equatable {
+    case checksumMissing
+    case checksumMismatch
 }
 
 /// Checks GitHub for a newer yt-dlp release than the one currently in use
@@ -33,10 +39,28 @@ public struct YtdlpUpdater: Sendable {
         let assetURL = URL(string: "https://github.com/yt-dlp/yt-dlp/releases/download/\(release.tagName)/yt-dlp_macos")!
         let (binaryData, _) = try await urlSession.data(from: assetURL)
 
+        let checksumsURL = URL(string: "https://github.com/yt-dlp/yt-dlp/releases/download/\(release.tagName)/SHA2-256SUMS")!
+        let (checksumsData, _) = try await urlSession.data(from: checksumsURL)
+        guard let checksumsText = String(data: checksumsData, encoding: .utf8),
+              let expectedHash = checksumsText
+                  .split(separator: "\n")
+                  .first(where: { $0.hasSuffix("yt-dlp_macos") })
+                  .map({ $0.split(separator: " ")[0] })
+        else {
+            throw YtdlpUpdaterError.checksumMissing
+        }
+
+        let actualHash = SHA256.hash(data: binaryData).compactMap { String(format: "%02x", $0) }.joined()
+        guard actualHash == expectedHash else {
+            throw YtdlpUpdaterError.checksumMismatch
+        }
+
         try FileManager.default.createDirectory(at: binDirectory, withIntermediateDirectories: true)
         let binPath = binDirectory.appendingPathComponent("yt-dlp")
-        try binaryData.write(to: binPath)
-        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: binPath.path)
+        let tmpPath = binDirectory.appendingPathComponent("yt-dlp.tmp-\(UUID().uuidString)")
+        try binaryData.write(to: tmpPath)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tmpPath.path)
+        _ = try FileManager.default.replaceItemAt(binPath, withItemAt: tmpPath)
 
         return release.tagName
     }

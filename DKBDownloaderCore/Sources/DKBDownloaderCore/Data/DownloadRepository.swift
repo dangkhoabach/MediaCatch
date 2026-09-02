@@ -46,6 +46,20 @@ public struct DownloadRepository: Sendable {
         }
     }
 
+    /// Marks every row still `.downloading` as `.error` — called once at
+    /// startup. A row can only be `.downloading` at launch if the app was
+    /// killed/crashed mid-download last time: there's no live `ProcessRunner`
+    /// for it in this fresh process, so without this it stays stuck showing
+    /// "downloading" forever with Cancel/Pause as permanent no-ops.
+    public func reconcileInterrupted() throws {
+        try dbQueue.write { db in
+            try db.execute(
+                sql: "UPDATE downloads SET status = ?, error_message = ? WHERE status = ?",
+                arguments: [DownloadStatus.error.rawValue, "Bị ngắt do app đóng đột ngột", DownloadStatus.downloading.rawValue]
+            )
+        }
+    }
+
     public func delete(id: Int64) throws {
         _ = try dbQueue.write { db in try Download.deleteOne(db, key: id) }
     }
