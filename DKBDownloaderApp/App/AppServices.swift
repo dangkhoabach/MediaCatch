@@ -9,6 +9,7 @@ enum AppServices {
     static let ffmpegURL = resolvedBinaryURL(name: "ffmpeg")
 
     static let ytdlpClient = YtdlpClient(ytdlpURL: ytdlpURL)
+    static let ytdlpUpdater = YtdlpUpdater(ytdlpURL: ytdlpURL, binDirectory: AppDatabaseLocation.binDirectory())
 
     static let downloadRepo = DownloadRepository(dbQueue: AppDatabase.shared!.dbQueue)
     static let urlHistoryRepo = UrlHistoryRepository(dbQueue: AppDatabase.shared!.dbQueue)

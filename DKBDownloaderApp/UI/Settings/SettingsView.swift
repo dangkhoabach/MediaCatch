@@ -1,4 +1,5 @@
 import AppKit
+import DKBDownloaderCore
 import SwiftUI
 
 /// Ports `pages/Settings.tsx`. Plain `@AppStorage`, no view model — every key
@@ -17,6 +18,10 @@ struct SettingsView: View {
     @AppStorage("dkb-downloader:embedMetadata") private var embedMetadata = false
     @AppStorage("dkb-downloader:cookiesBrowser") private var cookiesBrowser = "none"
     @AppStorage("dkb-downloader:useAria2c") private var useAria2c = false
+
+    @State private var ytdlpVersion: String?
+    @State private var checkingYtdlpUpdate = false
+    @State private var ytdlpUpdateMessage: String?
 
     var body: some View {
         Form {
@@ -66,6 +71,21 @@ struct SettingsView: View {
                 Text(t("settings.cookiesBrowserHint")).font(.caption).foregroundStyle(.secondary)
             }
 
+            Section(t("settings.section.ytdlp")) {
+                HStack {
+                    Text(t("settings.ytdlpVersion", ["version": ytdlpVersion ?? "…"]))
+                    Spacer()
+                    if checkingYtdlpUpdate {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Button(t("settings.checkYtdlpUpdate")) { Task { await checkYtdlpUpdate() } }
+                    }
+                }
+                if let ytdlpUpdateMessage {
+                    Text(ytdlpUpdateMessage).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+
             Section(t("settings.notifications")) {
                 Toggle(t("settings.notifications"), isOn: $notificationsEnabled)
                     .onChange(of: notificationsEnabled) { _, enabled in
@@ -84,6 +104,33 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .onAppear {
             if outputDir.isEmpty { outputDir = AppSettings.ensureOutputDir() }
+        }
+        .task { ytdlpVersion = await queryYtdlpVersion() }
+    }
+
+    private func queryYtdlpVersion() async -> String {
+        guard let runner = try? ProcessRunner(executableURL: AppServices.ytdlpURL, arguments: ["--version"]) else {
+            return "?"
+        }
+        var stdout = ""
+        for await event in runner.events {
+            if case .stdoutLine(let line) = event { stdout += line }
+        }
+        return stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func checkYtdlpUpdate() async {
+        checkingYtdlpUpdate = true
+        defer { checkingYtdlpUpdate = false }
+        do {
+            if let newVersion = try await AppServices.ytdlpUpdater.updateIfNeeded() {
+                ytdlpVersion = newVersion
+                ytdlpUpdateMessage = t("settings.ytdlpUpdateDownloaded", ["version": newVersion])
+            } else {
+                ytdlpUpdateMessage = t("settings.ytdlpUpToDate")
+            }
+        } catch {
+            ytdlpUpdateMessage = t("settings.ytdlpUpdateError")
         }
     }
 

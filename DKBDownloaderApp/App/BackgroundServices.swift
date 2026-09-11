@@ -35,8 +35,8 @@ enum BackgroundServices {
         // this app's own release cycle — mirrors `ytdlp.rs::update_ytdlp`'s
         // call site in `App.tsx::YtdlpUpdateChecker`.
         Task {
-            let updater = YtdlpUpdater(ytdlpURL: AppServices.ytdlpURL, binDirectory: AppDatabaseLocation.binDirectory())
-            guard let newVersion = try? await updater.updateIfNeeded(), AppSettings.notificationsEnabled() else { return }
+            guard let newVersion = try? await AppServices.ytdlpUpdater.updateIfNeeded(),
+                  AppSettings.notificationsEnabled() else { return }
             await NotificationManager.shared.notify(
                 title: t("notification.ytdlpUpdated.title"),
                 body: t("notification.ytdlpUpdated.body", ["version": newVersion]),

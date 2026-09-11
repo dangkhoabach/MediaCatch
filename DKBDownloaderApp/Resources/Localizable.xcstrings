@@ -1567,6 +1567,108 @@
           }
         }
       }
+    },
+    "settings.section.ytdlp": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp"
+          }
+        }
+      }
+    },
+    "settings.ytdlpVersion": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version: {version}"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phiên bản: {version}"
+          }
+        }
+      }
+    },
+    "settings.checkYtdlpUpdate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for update"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kiểm tra cập nhật"
+          }
+        }
+      }
+    },
+    "settings.ytdlpUpToDate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already up to date."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã là bản mới nhất."
+          }
+        }
+      }
+    },
+    "settings.ytdlpUpdateDownloaded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloaded yt-dlp {version}. Restart the app to use it."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã tải yt-dlp {version}. Khởi động lại app để áp dụng."
+          }
+        }
+      }
+    },
+    "settings.ytdlpUpdateError": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't check for updates. Check your internet connection."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể kiểm tra cập nhật. Kiểm tra kết nối mạng."
+          }
+        }
+      }
     }
   },
   "version": "1.1"
