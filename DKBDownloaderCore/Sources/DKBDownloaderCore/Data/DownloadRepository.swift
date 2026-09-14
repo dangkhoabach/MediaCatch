@@ -46,6 +46,12 @@ public struct DownloadRepository: Sendable {
         }
     }
 
+    /// Written into `error_message` by `reconcileInterrupted` instead of a
+    /// human-readable sentence: Core has no business choosing the user's
+    /// language, so the App layer maps this marker to a localized string when
+    /// it displays the row.
+    public static let interruptedErrorMessage = "dkb.error.interrupted"
+
     /// Marks every row still `.downloading` as `.error` — called once at
     /// startup. A row can only be `.downloading` at launch if the app was
     /// killed/crashed mid-download last time: there's no live `ProcessRunner`
@@ -55,7 +61,7 @@ public struct DownloadRepository: Sendable {
         try dbQueue.write { db in
             try db.execute(
                 sql: "UPDATE downloads SET status = ?, error_message = ? WHERE status = ?",
-                arguments: [DownloadStatus.error.rawValue, "Bị ngắt do app đóng đột ngột", DownloadStatus.downloading.rawValue]
+                arguments: [DownloadStatus.error.rawValue, Self.interruptedErrorMessage, DownloadStatus.downloading.rawValue]
             )
         }
     }

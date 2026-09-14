@@ -5,21 +5,24 @@ import SwiftUI
 /// Show/Quit.
 struct MenuBarContentView: View {
     var body: some View {
-        Text("Downloads: \(MenuBarStatsViewModel.shared.activeDownloadCount)")
+        // `t()` rather than a bare string literal: SwiftUI would localize a
+        // literal against the *system* language, ignoring the language picker
+        // in Settings that every other surface follows.
+        Text(t("menubar.downloads", ["count": "\(MenuBarStatsViewModel.shared.activeDownloadCount)"]))
 
         Divider()
 
-        Button("Show DKB Downloader") {
+        Button(t("menubar.show")) {
             WindowPresenter.showMainWindow()
         }
         // Same tab as the app menu's Cmd+, (see DKBDownloaderApp.swift) —
         // both entry points select ContentView's one Settings tab in the
         // main window instead of opening a separate window.
-        Button("Settings…") {
+        Button(t("menubar.settings")) {
             AppNavigationState.shared.selectedSection = .settings
             WindowPresenter.showMainWindow()
         }
-        Button("Quit") {
+        Button(t("menubar.quit")) {
             NSApp.terminate(nil)
         }
     }

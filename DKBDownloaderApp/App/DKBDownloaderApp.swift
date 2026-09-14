@@ -42,7 +42,7 @@ struct DKBDownloaderApp: App {
             // in the app menu — matches lib.rs's Help-menu "Check for
             // Updates…" item in spirit, in the idiomatic macOS location.
             CommandGroup(after: .appInfo) {
-                Button("Check for Updates…") {
+                Button(t("menu.checkForUpdates")) {
                     AppUpdater.checkForUpdates()
                 }
             }
@@ -53,7 +53,7 @@ struct DKBDownloaderApp: App {
             // and selects the same tab the menu bar tray's "Settings…" item
             // does, instead of opening a second window.
             CommandGroup(replacing: .appSettings) {
-                Button("Settings…") {
+                Button(t("menubar.settings")) {
                     AppNavigationState.shared.selectedSection = .settings
                     WindowPresenter.showMainWindow()
                 }

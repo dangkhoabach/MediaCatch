@@ -140,7 +140,11 @@ struct LibraryView: View {
                 Text(record.createdAt.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption).foregroundStyle(.secondary)
                 if record.status == .error, let message = record.errorMessage {
-                    Text(message).font(.caption).foregroundStyle(.red).lineLimit(1)
+                    // Core writes a language-neutral marker for the
+                    // "interrupted by a crash/quit" case; everything else is
+                    // yt-dlp's own stderr, which has no translation to give.
+                    Text(message == DownloadRepository.interruptedErrorMessage ? t("library.status.interruptedHint") : message)
+                        .font(.caption).foregroundStyle(.red).lineLimit(1)
                 }
             }
             Spacer()
