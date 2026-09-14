@@ -41,6 +41,11 @@ final class HomeViewModel {
     private let downloadManager = AppServices.downloadManager
     private let urlHistoryRepo = AppServices.urlHistoryRepo
 
+    /// Owned here rather than spawned ad-hoc at each call site so the UI has
+    /// something to cancel. Cancelling it kills the yt-dlp process too, not
+    /// just the Swift task — see `YtdlpClient.run`.
+    private var fetchTask: Task<Void, Never>?
+
     /// Only recognizes unambiguous, YouTube-only playlist links (a bare
     /// `/playlist?list=...` or `list=` without an accompanying `v=`) —
     /// mirrors `Home.tsx::isPlaylistUrl` exactly, including its reasoning: a
@@ -74,6 +79,23 @@ final class HomeViewModel {
         return nil
     }
 
+    /// Entry point for every "go fetch this" action in the UI. Replaces any
+    /// fetch already in flight, so a second Fetch press doesn't leave the
+    /// first yt-dlp process running unattended.
+    func startFetch(overrideUrl: String? = nil) {
+        fetchTask?.cancel()
+        fetchTask = Task { [weak self] in
+            await self?.fetchInfo(overrideUrl: overrideUrl)
+        }
+    }
+
+    /// Cancelling the task terminates the child process; `fetchInfo`'s own
+    /// `defer` clears `loading` on the way out.
+    func cancelFetch() {
+        fetchTask?.cancel()
+        fetchTask = nil
+    }
+
     func fetchInfo(overrideUrl: String? = nil) async {
         let trimmed = (overrideUrl ?? url).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -102,8 +124,21 @@ final class HomeViewModel {
             try? urlHistoryRepo.upsert(url: trimmed, title: result.title)
             selectedFormatId = defaultFormatId(for: result, audioOnly: audioOnly)
         } catch {
-            errorMessage = "\(t("home.fetchError")): \(error)"
+            // A cancelled fetch surfaces as the killed process's non-zero
+            // exit; that's the user's own doing, not something to report.
+            guard !Task.isCancelled else { return }
+            errorMessage = errorText(for: error, fallbackKey: "home.fetchError")
         }
+    }
+
+    /// Timeouts get their own message: the underlying error carries no stderr
+    /// to show (a stalled connection prints nothing), so the generic
+    /// "couldn't fetch: <error>" form would read as an empty failure.
+    private func errorText(for error: Error, fallbackKey: String) -> String {
+        if case YtdlpError.timedOut = error {
+            return t("home.fetchTimeout")
+        }
+        return "\(t(fallbackKey)): \(error)"
     }
 
     private func expandPlaylist(_ playlistUrl: String) async {
@@ -119,7 +154,8 @@ final class HomeViewModel {
             batchItems = []
             batchText = entries.map(\.url).joined(separator: "\n")
         } catch {
-            errorMessage = "\(t("home.playlistExpandError")): \(error)"
+            guard !Task.isCancelled else { return }
+            errorMessage = errorText(for: error, fallbackKey: "home.playlistExpandError")
         }
     }
 
@@ -286,10 +322,10 @@ final class HomeViewModel {
 
     /// Mirrors `Home.tsx`'s `useEffect` on `pendingFetchUrl` — called from
     /// the view whenever `AppNavigationState.shared.pendingFetchUrl` changes.
-    func handlePendingFetch(_ pendingUrl: String) async {
+    func handlePendingFetch(_ pendingUrl: String) {
         batchMode = false
         url = pendingUrl
-        await fetchInfo(overrideUrl: pendingUrl)
+        startFetch(overrideUrl: pendingUrl)
         AppNavigationState.shared.pendingFetchUrl = nil
     }
 }

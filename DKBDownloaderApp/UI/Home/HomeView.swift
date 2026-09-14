@@ -64,7 +64,7 @@ struct HomeView: View {
         }
         .task(id: AppNavigationState.shared.pendingFetchUrl) {
             if let pending = AppNavigationState.shared.pendingFetchUrl {
-                await viewModel.handlePendingFetch(pending)
+                viewModel.handlePendingFetch(pending)
             }
         }
         // Mirrors the old Tauri app's page-level `onDrop`: dragging a link
@@ -83,7 +83,7 @@ struct HomeView: View {
                 guard let url else { return }
                 Task { @MainActor in
                     viewModel.url = url.absoluteString
-                    await viewModel.fetchInfo()
+                    viewModel.startFetch()
                 }
             }
             return true
@@ -93,7 +93,7 @@ struct HomeView: View {
                 guard let text = text as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
                 Task { @MainActor in
                     viewModel.url = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                    await viewModel.fetchInfo()
+                    viewModel.startFetch()
                 }
             }
             return true
@@ -106,7 +106,7 @@ struct HomeView: View {
             TextField(t("home.urlPlaceholder"), text: $viewModel.url)
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.large)
-                .onSubmit { Task { await viewModel.fetchInfo() } }
+                .onSubmit { viewModel.startFetch() }
             fetchInfoButton
         }
     }
@@ -119,24 +119,29 @@ struct HomeView: View {
     /// than one ternary on the modifier.
     @ViewBuilder
     private var fetchInfoButton: some View {
-        let label = Group {
-            if viewModel.loading {
+        if viewModel.loading {
+            // Spinner *and* a way out: a stalled extraction otherwise left
+            // this spinning with nothing to press until the 90s timeout.
+            // Cancel kills the yt-dlp process, not just the Swift task.
+            HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-            } else {
-                Text(t("home.fetchInfo"))
+                Button(t("home.fetchCancel")) { viewModel.cancelFetch() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
             }
-        }
-        let isDisabled = viewModel.loading || viewModel.url.trimmingCharacters(in: .whitespaces).isEmpty
-        if viewModel.info == nil {
-            Button { Task { await viewModel.fetchInfo() } } label: { label }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(isDisabled)
         } else {
-            Button { Task { await viewModel.fetchInfo() } } label: { label }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-                .disabled(isDisabled)
+            let isDisabled = viewModel.url.trimmingCharacters(in: .whitespaces).isEmpty
+            if viewModel.info == nil {
+                Button(t("home.fetchInfo")) { viewModel.startFetch() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(isDisabled)
+            } else {
+                Button(t("home.fetchInfo")) { viewModel.startFetch() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .disabled(isDisabled)
+            }
         }
     }
 

@@ -1835,6 +1835,40 @@
           }
         }
       }
+    },
+    "home.fetchCancel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Huỷ"
+          }
+        }
+      }
+    },
+    "home.fetchTimeout": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This took too long and was stopped. Check your connection, then try again."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quá thời gian chờ nên đã dừng lại. Kiểm tra kết nối mạng rồi thử lại."
+          }
+        }
+      }
     }
   },
   "version": "1.1"
