@@ -1720,6 +1720,23 @@
           }
         }
       }
+    },
+    "error.invalidUrl": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That isn't a link — it would be read as a command option. Check the address and try again."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đây không phải đường dẫn — chuỗi này sẽ bị hiểu thành tuỳ chọn dòng lệnh. Kiểm tra lại địa chỉ rồi thử lại."
+          }
+        }
+      }
     }
   },
   "version": "1.1"

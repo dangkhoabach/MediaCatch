@@ -28,6 +28,21 @@ struct DownloadManagerArgumentTests {
         #expect(args.last == "https://example.com/v", "url must always be the final argument")
     }
 
+    /// Without the `--` separator, yt-dlp parses a dash-leading "URL" as an
+    /// option — passing "--version" made it print its version instead of
+    /// rejecting an invalid URL. Home's drag-and-drop fetches whatever was
+    /// dropped without a confirmation step, so this must hold everywhere.
+    @Test func urlIsSeparatedFromOptionsByADoubleDash() {
+        let dashUrl = StartDownloadRequest(
+            url: "--version", title: "t", formatSelector: "best",
+            outputDir: "/tmp/out", outputFormat: "mp4"
+        )
+        let args = DownloadManager.buildArguments(request: dashUrl, tempDir: tempDir, ffmpegURL: nil)
+
+        #expect(args.last == "--version")
+        #expect(args.dropLast().last == "--", "the url must be preceded by an end-of-options separator")
+    }
+
     @Test func embedMetadataAddsThumbnailChaptersAndSubs() {
         let args = DownloadManager.buildArguments(request: request(embedMetadata: true), tempDir: tempDir, ffmpegURL: nil)
 

@@ -18,6 +18,9 @@ public struct YtdlpClient: Sendable {
     public func fetchVideoInfo(url: String, cookiesBrowser: String? = nil) async throws -> VideoInfo {
         var args = ["-j", "--no-playlist", "--no-warnings"]
         Self.appendCookiesArg(&args, cookiesBrowser)
+        // See `DownloadManager.buildArguments` — `--` keeps a dash-leading
+        // string from being parsed as an option instead of a URL.
+        args.append("--")
         args.append(url)
 
         let output = try await Self.run(ytdlpURL, args)
@@ -34,6 +37,7 @@ public struct YtdlpClient: Sendable {
             args.append("--playlist-end")
             args.append(String(limit))
         }
+        args.append("--")
         args.append(url)
 
         let output = try await Self.run(ytdlpURL, args)

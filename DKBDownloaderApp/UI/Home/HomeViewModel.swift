@@ -77,6 +77,10 @@ final class HomeViewModel {
     func fetchInfo(overrideUrl: String? = nil) async {
         let trimmed = (overrideUrl ?? url).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        guard isFetchableURL(trimmed) else {
+            errorMessage = t("error.invalidUrl")
+            return
+        }
         errorMessage = nil
 
         if isPlaylistUrl(trimmed) {
@@ -204,6 +208,11 @@ final class HomeViewModel {
 
         for index in urls.indices {
             let itemUrl = urls[index]
+            guard isFetchableURL(itemUrl) else {
+                batchItems[index].status = .error
+                batchItems[index].message = t("error.invalidUrl")
+                continue
+            }
             batchItems[index].status = .working
             do {
                 let result = try await ytdlpClient.fetchVideoInfo(url: itemUrl, cookiesBrowser: cookiesBrowser)

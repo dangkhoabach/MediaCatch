@@ -12,6 +12,28 @@ mkdir -p vendor/binaries
 echo "Downloading yt-dlp_macos (universal arm64+x86_64)..."
 curl -L -o vendor/binaries/yt-dlp-aarch64-apple-darwin \
   "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos"
+
+# Verify against the checksum file published alongside the same release,
+# exactly like the app's own runtime self-updater (YtdlpUpdater) does — this
+# binary gets bundled into every build, so a bad download must fail the
+# release rather than ship. The `$` anchor keeps the yt-dlp_macos.zip line
+# from matching.
+echo "Verifying yt-dlp checksum..."
+curl -fsSL -o /tmp/yt-dlp-SHA2-256SUMS \
+  "https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS"
+EXPECTED_YTDLP_SHA=$(grep ' yt-dlp_macos$' /tmp/yt-dlp-SHA2-256SUMS | awk '{print $1}')
+ACTUAL_YTDLP_SHA=$(shasum -a 256 vendor/binaries/yt-dlp-aarch64-apple-darwin | awk '{print $1}')
+rm -f /tmp/yt-dlp-SHA2-256SUMS
+if [ -z "$EXPECTED_YTDLP_SHA" ]; then
+  echo "Error: no yt-dlp_macos entry in the release's SHA2-256SUMS" >&2
+  exit 1
+fi
+if [ "$EXPECTED_YTDLP_SHA" != "$ACTUAL_YTDLP_SHA" ]; then
+  echo "Error: yt-dlp checksum mismatch (expected $EXPECTED_YTDLP_SHA, got $ACTUAL_YTDLP_SHA)" >&2
+  rm -f vendor/binaries/yt-dlp-aarch64-apple-darwin
+  exit 1
+fi
+
 cp vendor/binaries/yt-dlp-aarch64-apple-darwin vendor/binaries/yt-dlp-x86_64-apple-darwin
 chmod +x vendor/binaries/yt-dlp-aarch64-apple-darwin vendor/binaries/yt-dlp-x86_64-apple-darwin
 echo "  yt-dlp: $(vendor/binaries/yt-dlp-aarch64-apple-darwin --version)"

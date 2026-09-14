@@ -20,6 +20,10 @@ final class WatchViewModel {
     func add() async {
         let trimmed = url.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
+        guard isFetchableURL(trimmed) else {
+            errorMessage = t("error.invalidUrl")
+            return
+        }
         adding = true
         defer { adding = false }
 

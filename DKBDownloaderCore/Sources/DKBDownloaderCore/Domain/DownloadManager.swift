@@ -274,6 +274,12 @@ public actor DownloadManager {
             args.append("aria2c:-x16 -s16 -k1M")
         }
 
+        // `--` ends option parsing: without it, a "URL" starting with a dash
+        // is parsed as a yt-dlp option instead (confirmed: passing
+        // "--version" here made yt-dlp print its version rather than fail on
+        // an invalid URL). Reachable from Home's drag-and-drop, which fetches
+        // whatever was dropped with no confirmation step.
+        args.append("--")
         args.append(request.url)
         return args
     }

@@ -22,6 +22,12 @@ APP_NAME="DKB Downloader"
 PROJECT_YML="project.yml"
 SPARKLE_ACCOUNT="dkb-downloader"
 SPARKLE_VERSION="2.6.4"
+# SHA-256 of Sparkle-2.6.4.tar.xz. Pinned so the tools this script signs
+# releases with can't be swapped out from under it later; it was computed
+# from a download here, which means it guards against future substitution at
+# that URL, not against that first download having already been tampered
+# with. Must be recomputed when SPARKLE_VERSION changes.
+SPARKLE_SHA256="50612a06038abc931f16011d7903b8326a362c1074dabccb718404ce8e585f0b"
 SPARKLE_TOOLS_DIR=".sparkle-tools"
 
 command -v create-dmg >/dev/null || { echo "Error: create-dmg not found. Run: brew install create-dmg" >&2; exit 1; }
@@ -97,6 +103,14 @@ if [ ! -x "$SPARKLE_TOOLS_DIR/bin/sign_update" ]; then
   mkdir -p "$SPARKLE_TOOLS_DIR"
   curl -fsSL -o "$SPARKLE_TOOLS_DIR/sparkle.tar.xz" \
     "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
+  ACTUAL_SPARKLE_SHA=$(shasum -a 256 "$SPARKLE_TOOLS_DIR/sparkle.tar.xz" | awk '{print $1}')
+  if [ "$ACTUAL_SPARKLE_SHA" != "$SPARKLE_SHA256" ]; then
+    echo "Error: Sparkle tarball checksum mismatch" >&2
+    echo "  expected $SPARKLE_SHA256" >&2
+    echo "  got      $ACTUAL_SPARKLE_SHA" >&2
+    rm -f "$SPARKLE_TOOLS_DIR/sparkle.tar.xz"
+    exit 1
+  fi
   tar -xf "$SPARKLE_TOOLS_DIR/sparkle.tar.xz" -C "$SPARKLE_TOOLS_DIR"
 fi
 # -p prints only the raw EdDSA signature (no "sparkle:edSignature=... length=..."
