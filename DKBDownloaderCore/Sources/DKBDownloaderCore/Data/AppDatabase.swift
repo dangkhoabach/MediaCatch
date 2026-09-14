@@ -22,6 +22,14 @@ public struct AppDatabase: Sendable {
         try Self.migrator.migrate(dbQueue)
     }
 
+    /// Same thing without making the caller construct a `DatabaseQueue`
+    /// itself — the App layer's last-resort fallback when no database file
+    /// can be opened *or* created (a full disk), so downloads keep working
+    /// for the session instead of taking the whole app down.
+    public static func inMemory() throws -> AppDatabase {
+        try AppDatabase(inMemory: DatabaseQueue())
+    }
+
     static var migrator: DatabaseMigrator {
         var migrator = DatabaseMigrator()
 

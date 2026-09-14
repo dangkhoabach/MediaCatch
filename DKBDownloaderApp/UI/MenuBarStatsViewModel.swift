@@ -29,8 +29,7 @@ public final class MenuBarStatsViewModel {
     }
 
     public func refresh() {
-        guard let dbQueue = AppDatabase.shared?.dbQueue else { return }
-        let repo = DownloadRepository(dbQueue: dbQueue)
+        let repo = DownloadRepository(dbQueue: AppDatabase.shared.dbQueue)
         activeDownloadCount = (try? repo.list().filter { $0.status == .downloading }.count) ?? 0
     }
 }

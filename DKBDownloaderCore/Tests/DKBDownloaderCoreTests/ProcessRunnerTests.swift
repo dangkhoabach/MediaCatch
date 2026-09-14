@@ -91,6 +91,32 @@ struct ProcessRunnerTests {
         await collectorTask.value
     }
 
+    /// Canceling (or quitting with) a *paused* download has to actually kill
+    /// the child. Unlike Linux — where a SIGTERM sent to a SIGSTOPped process
+    /// stays pending until it's resumed — Darwin acts on it right away, so
+    /// `cancel`/`terminateAll` need no SIGCONT first. Pinned here because
+    /// that difference is easy to "fix" based on the Linux behavior.
+    @Test func aSuspendedProcessStillActsOnTerminate() async throws {
+        let runner = try ProcessRunner(executableURL: shell, arguments: ["-c", "sleep 30"])
+        #expect(runner.suspend())
+
+        runner.terminate()
+
+        // Polled rather than a fixed sleep: SIGTERM delivery is near-instant
+        // but not synchronous with `terminate()` returning.
+        var attempts = 0
+        while runner.isRunning, attempts < 50 {
+            try await Task.sleep(for: .milliseconds(20))
+            attempts += 1
+        }
+
+        #expect(!runner.isRunning, "a stopped process should still act on SIGTERM on Darwin")
+        // No-ops if it already exited; only matters if the assert above
+        // failed, so a regression doesn't leave a stopped process behind.
+        runner.resume()
+        runner.terminate()
+    }
+
     /// PoC exit-criteria item 4: a caller that marks "I canceled this"
     /// *before* calling terminate() can reliably tell that apart from a real
     /// failure once `terminated` arrives, the same pattern

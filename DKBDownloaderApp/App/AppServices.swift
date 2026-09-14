@@ -11,9 +11,9 @@ enum AppServices {
     static let ytdlpClient = YtdlpClient(ytdlpURL: ytdlpURL)
     static let ytdlpUpdater = YtdlpUpdater(ytdlpURL: ytdlpURL, binDirectory: AppDatabaseLocation.binDirectory())
 
-    static let downloadRepo = DownloadRepository(dbQueue: AppDatabase.shared!.dbQueue)
-    static let urlHistoryRepo = UrlHistoryRepository(dbQueue: AppDatabase.shared!.dbQueue)
-    static let watchedChannelRepo = WatchedChannelRepository(dbQueue: AppDatabase.shared!.dbQueue)
+    static let downloadRepo = DownloadRepository(dbQueue: AppDatabase.shared.dbQueue)
+    static let urlHistoryRepo = UrlHistoryRepository(dbQueue: AppDatabase.shared.dbQueue)
+    static let watchedChannelRepo = WatchedChannelRepository(dbQueue: AppDatabase.shared.dbQueue)
 
     static let downloadManager = DownloadManager(
         ytdlpURL: ytdlpURL, ffmpegURL: ffmpegURL, downloadRepo: downloadRepo

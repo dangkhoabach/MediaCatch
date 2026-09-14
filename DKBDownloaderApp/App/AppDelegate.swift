@@ -1,4 +1,5 @@
 import AppKit
+import DKBDownloaderCore
 
 /// Minimal AppKit glue for the 2 behaviors SwiftUI Scenes don't expose (see
 /// D5/Mục 2 in docs/swift-native-port-plan.md, copied from DKB Monitor's
@@ -8,6 +9,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         MenuBarStatsViewModel.shared.start()
         BackgroundServices.start()
+        presentDatabaseRecoveryAlertIfNeeded()
+    }
+
+    /// The database file couldn't be opened this launch and had to be
+    /// replaced — say so once, so the resulting empty history reads as a
+    /// recovery rather than the app silently losing everything.
+    @MainActor
+    private func presentDatabaseRecoveryAlertIfNeeded() {
+        // Touch `shared` first: it's lazily initialized and `recovery` only
+        // gets set while that initializer runs, which nothing above is
+        // guaranteed to have triggered yet (both start() calls do their DB
+        // work inside a Task).
+        _ = AppDatabase.shared
+        guard let recovery = AppDatabase.recovery else { return }
+
+        let alert = NSAlert()
+        alert.messageText = t("db.recovered.title")
+        switch recovery {
+        case .replacedUnopenableFile(let backupPath):
+            alert.informativeText = t("db.recovered.replaced", ["path": backupPath])
+        case .inMemoryFallback:
+            alert.informativeText = t("db.recovered.inMemory")
+        }
+        alert.runModal()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

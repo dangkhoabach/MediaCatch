@@ -20,6 +20,12 @@ final class HomeViewModel {
     var url = ""
     var loading = false
     var info: VideoInfo?
+    /// The URL `info`/`selectedFormatId` actually describe — not necessarily
+    /// what's in the text field by the time Download is pressed, since the
+    /// user can keep editing it after a fetch. Downloading the typed URL with
+    /// the previous video's format id would fetch the wrong video (or fail on
+    /// a format id that doesn't exist there).
+    private var fetchedUrl: String?
     var platform: String?
     var selectedFormatId: String?
     var audioOnly = false
@@ -80,6 +86,7 @@ final class HomeViewModel {
 
         loading = true
         info = nil
+        fetchedUrl = nil
         platform = detectPlatform(trimmed)
         selectedFormatId = nil
         defer { loading = false }
@@ -87,6 +94,7 @@ final class HomeViewModel {
         do {
             let result = try await ytdlpClient.fetchVideoInfo(url: trimmed, cookiesBrowser: AppSettings.cookiesBrowser())
             info = result
+            fetchedUrl = trimmed
             try? urlHistoryRepo.upsert(url: trimmed, title: result.title)
             selectedFormatId = defaultFormatId(for: result, audioOnly: audioOnly)
         } catch {
@@ -134,7 +142,7 @@ final class HomeViewModel {
     }
 
     func download() async {
-        guard let info else { return }
+        guard let info, let fetchedUrl else { return }
         errorMessage = nil
         starting = true
         defer { starting = false }
@@ -157,7 +165,7 @@ final class HomeViewModel {
         }
 
         let request = StartDownloadRequest(
-            url: url.trimmingCharacters(in: .whitespacesAndNewlines),
+            url: fetchedUrl,
             title: info.title,
             formatSelector: selector,
             outputDir: AppSettings.ensureOutputDir(),

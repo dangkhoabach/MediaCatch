@@ -177,12 +177,31 @@ public actor DownloadManager {
             .appendingPathComponent(String(downloadId), isDirectory: true)
     }
 
+    /// Appends " (1)", " (2)", … before the extension until the name is free.
+    /// `moveItem`/`copyItem` both fail outright against an existing
+    /// destination, so without this, re-downloading a video whose file is
+    /// already in the output folder reported an error and deleted the
+    /// finished file along with its temp dir.
+    static func uniqueDestination(filename: String, outputDir: String) -> URL {
+        let directory = URL(fileURLWithPath: outputDir)
+        let base = (filename as NSString).deletingPathExtension
+        let ext = (filename as NSString).pathExtension
+        var candidate = directory.appendingPathComponent(filename)
+        var counter = 1
+        while FileManager.default.fileExists(atPath: candidate.path) {
+            let numbered = ext.isEmpty ? "\(base) (\(counter))" : "\(base) (\(counter)).\(ext)"
+            candidate = directory.appendingPathComponent(numbered)
+            counter += 1
+        }
+        return candidate
+    }
+
     /// Moves the finished file out of its temp working directory into the
     /// user's chosen output folder. Falls back to copy+delete when the
     /// rename fails across filesystem boundaries.
     static func moveToOutputDir(tempPath: String, outputDir: String) -> String? {
         let tempURL = URL(fileURLWithPath: tempPath)
-        let destURL = URL(fileURLWithPath: outputDir).appendingPathComponent(tempURL.lastPathComponent)
+        let destURL = uniqueDestination(filename: tempURL.lastPathComponent, outputDir: outputDir)
         do {
             try FileManager.default.moveItem(at: tempURL, to: destURL)
             return destURL.path

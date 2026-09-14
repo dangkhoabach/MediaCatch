@@ -1669,6 +1669,57 @@
           }
         }
       }
+    },
+    "db.recovered.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Database reset"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã tạo lại cơ sở dữ liệu"
+          }
+        }
+      }
+    },
+    "db.recovered.replaced": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app's database couldn't be opened, so it started from a new empty one. Your previous file was kept here:\n{path}"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không mở được cơ sở dữ liệu của app nên app đã bắt đầu lại với file mới. File cũ vẫn được giữ tại:\n{path}"
+          }
+        }
+      }
+    },
+    "db.recovered.inMemory": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app's database couldn't be opened or recreated — the disk may be full. Downloads still work, but history won't be saved this session."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không mở và cũng không tạo lại được cơ sở dữ liệu — có thể ổ đĩa đã đầy. Tải xuống vẫn hoạt động, nhưng lịch sử sẽ không được lưu trong phiên này."
+          }
+        }
+      }
     }
   },
   "version": "1.1"
