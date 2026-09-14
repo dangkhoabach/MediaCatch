@@ -18,6 +18,7 @@ struct SettingsView: View {
     @AppStorage("dkb-downloader:embedMetadata") private var embedMetadata = false
     @AppStorage("dkb-downloader:cookiesBrowser") private var cookiesBrowser = "none"
     @AppStorage("dkb-downloader:useAria2c") private var useAria2c = false
+    @AppStorage("dkb-downloader:maxConcurrentDownloads") private var maxConcurrentDownloads = 3
 
     @State private var ytdlpVersion: String?
     @State private var checkingYtdlpUpdate = false
@@ -56,6 +57,18 @@ struct SettingsView: View {
             }
 
             Section(t("settings.section.downloads")) {
+                Picker(t("settings.maxConcurrent"), selection: $maxConcurrentDownloads) {
+                    ForEach([1, 2, 3, 5, 10], id: \.self) { count in
+                        Text("\(count)").tag(count)
+                    }
+                }
+                // Takes effect on the running manager straight away: raising
+                // it admits whatever is already waiting, lowering it only
+                // applies to downloads that haven't started yet.
+                .onChange(of: maxConcurrentDownloads) { _, value in
+                    Task { await AppServices.downloadManager.setMaxConcurrent(value) }
+                }
+                Text(t("settings.maxConcurrentHint")).font(.caption).foregroundStyle(.secondary)
                 Toggle(t("settings.embedMetadata"), isOn: $embedMetadata)
                 Text(t("settings.embedMetadataHint")).font(.caption).foregroundStyle(.secondary)
                 Toggle(t("settings.useAria2c"), isOn: $useAria2c)

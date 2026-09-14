@@ -16,6 +16,7 @@ enum AppSettings {
         static let cookiesBrowser = "dkb-downloader:cookiesBrowser"
         static let useAria2c = "dkb-downloader:useAria2c"
         static let notificationsEnabled = "dkb-downloader:notificationsEnabled"
+        static let maxConcurrentDownloads = "dkb-downloader:maxConcurrentDownloads"
     }
 
     /// Falls back to the OS Downloads folder and persists it the first time
@@ -48,6 +49,15 @@ enum AppSettings {
     /// Off by default — requires the user to have aria2c installed separately.
     static func useAria2c() -> Bool {
         defaults.bool(forKey: Keys.useAria2c)
+    }
+
+    /// How many downloads run at once; the rest wait in `DownloadManager`'s
+    /// queue. 3 by default — enough to keep the link saturated without
+    /// splitting it so many ways that every download crawls. Absent means
+    /// "never set", not `Bool`-style zero.
+    static func maxConcurrentDownloads() -> Int {
+        let stored = defaults.integer(forKey: Keys.maxConcurrentDownloads)
+        return stored > 0 ? stored : 3
     }
 
     /// On by default (mirrors `settings.ts::getNotificationsEnabled`'s

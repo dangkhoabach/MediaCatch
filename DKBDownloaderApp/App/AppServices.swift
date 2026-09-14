@@ -16,7 +16,8 @@ enum AppServices {
     static let watchedChannelRepo = WatchedChannelRepository(dbQueue: AppDatabase.shared.dbQueue)
 
     static let downloadManager = DownloadManager(
-        ytdlpURL: ytdlpURL, ffmpegURL: ffmpegURL, downloadRepo: downloadRepo
+        ytdlpURL: ytdlpURL, ffmpegURL: ffmpegURL, downloadRepo: downloadRepo,
+        maxConcurrent: AppSettings.maxConcurrentDownloads()
     )
 
     static let channelWatcher = ChannelWatcher(

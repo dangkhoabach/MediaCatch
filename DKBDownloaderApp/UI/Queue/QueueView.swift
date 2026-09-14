@@ -38,18 +38,23 @@ struct QueueView: View {
     private func row(_ download: Download) -> some View {
         let id = download.id ?? -1
         let progress = eventCenter.progressById[id]
+        let isQueued = download.status == .queued
 
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(download.title).font(.callout).lineLimit(1)
                 Spacer()
-                Button {
-                    Task { await viewModel.togglePause(id) }
-                } label: {
-                    Image(systemName: viewModel.isPaused(id) ? "play.fill" : "pause.fill")
+                // Nothing to pause until it has actually started — the button
+                // would be a permanent no-op on a queued row.
+                if !isQueued {
+                    Button {
+                        Task { await viewModel.togglePause(id) }
+                    } label: {
+                        Image(systemName: viewModel.isPaused(id) ? "play.fill" : "pause.fill")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(viewModel.isPaused(id) ? t("queue.resume") : t("queue.pause"))
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(viewModel.isPaused(id) ? t("queue.resume") : t("queue.pause"))
                 Button {
                     Task { await viewModel.cancel(id) }
                 } label: {
@@ -58,18 +63,24 @@ struct QueueView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(t("queue.cancel"))
             }
-            ProgressView(value: percent(from: progress), total: 100)
-            HStack {
-                Text(progress?.percent.trimmingCharacters(in: .whitespaces) ?? "0%")
-                Spacer()
-                Text(progress?.speed.trimmingCharacters(in: .whitespaces) ?? "")
-                Spacer()
-                if let eta = progress?.eta.trimmingCharacters(in: .whitespaces), !eta.isEmpty {
-                    Text(t("queue.eta", ["eta": eta]))
+
+            if isQueued {
+                // A determinate 0% bar would read as "started but stuck".
+                Text(t("queue.waiting")).font(.caption).foregroundStyle(.secondary)
+            } else {
+                ProgressView(value: percent(from: progress), total: 100)
+                HStack {
+                    Text(progress?.percent.trimmingCharacters(in: .whitespaces) ?? "0%")
+                    Spacer()
+                    Text(progress?.speed.trimmingCharacters(in: .whitespaces) ?? "")
+                    Spacer()
+                    if let eta = progress?.eta.trimmingCharacters(in: .whitespaces), !eta.isEmpty {
+                        Text(t("queue.eta", ["eta": eta]))
+                    }
                 }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
         }
         .padding(.vertical, 6)
     }

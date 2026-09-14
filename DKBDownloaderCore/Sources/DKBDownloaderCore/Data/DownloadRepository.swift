@@ -52,16 +52,19 @@ public struct DownloadRepository: Sendable {
     /// it displays the row.
     public static let interruptedErrorMessage = "dkb.error.interrupted"
 
-    /// Marks every row still `.downloading` as `.error` — called once at
-    /// startup. A row can only be `.downloading` at launch if the app was
-    /// killed/crashed mid-download last time: there's no live `ProcessRunner`
-    /// for it in this fresh process, so without this it stays stuck showing
-    /// "downloading" forever with Cancel/Pause as permanent no-ops.
+    /// Marks every row still `.downloading` or `.queued` as `.error` — called
+    /// once at startup. A row can only be in either state at launch if the app
+    /// was killed/crashed last time: this fresh process has no live
+    /// `ProcessRunner` for it and no in-memory queue entry either, so without
+    /// this it stays stuck forever with Cancel/Pause as permanent no-ops.
     public func reconcileInterrupted() throws {
         try dbQueue.write { db in
             try db.execute(
-                sql: "UPDATE downloads SET status = ?, error_message = ? WHERE status = ?",
-                arguments: [DownloadStatus.error.rawValue, Self.interruptedErrorMessage, DownloadStatus.downloading.rawValue]
+                sql: "UPDATE downloads SET status = ?, error_message = ? WHERE status IN (?, ?)",
+                arguments: [
+                    DownloadStatus.error.rawValue, Self.interruptedErrorMessage,
+                    DownloadStatus.downloading.rawValue, DownloadStatus.queued.rawValue,
+                ]
             )
         }
     }

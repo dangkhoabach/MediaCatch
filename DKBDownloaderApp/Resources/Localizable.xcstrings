@@ -1869,6 +1869,57 @@
           }
         }
       }
+    },
+    "settings.maxConcurrent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads at once"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Số video tải cùng lúc"
+          }
+        }
+      }
+    },
+    "settings.maxConcurrentHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anything beyond this waits its turn in the queue"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vượt quá số này thì xếp hàng chờ đến lượt"
+          }
+        }
+      }
+    },
+    "queue.waiting": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for a free slot"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang chờ đến lượt"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

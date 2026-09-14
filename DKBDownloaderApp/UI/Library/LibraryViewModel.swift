@@ -34,9 +34,11 @@ final class LibraryViewModel {
         }
     }
 
+    /// Everything that isn't still active — a queued download hasn't happened
+    /// yet, so it belongs in Queue rather than in history.
     func refresh() {
         guard let all = try? AppServices.downloadRepo.list() else { return }
-        records = all.filter { $0.status != .downloading }
+        records = all.filter { $0.status != .downloading && $0.status != .queued }
     }
 
     func refreshRecent() {

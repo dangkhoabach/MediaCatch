@@ -2,6 +2,11 @@ import Foundation
 import GRDB
 
 public enum DownloadStatus: String, Codable, Sendable {
+    /// Accepted but waiting for a slot — `DownloadManager` only runs
+    /// `maxConcurrent` downloads at a time. Stored as plain text like every
+    /// other status, so adding it needed no schema change; rows written by
+    /// older versions simply never carry it.
+    case queued
     case downloading
     case completed
     case error

@@ -54,25 +54,56 @@ public actor DownloadManager {
     private var runners: [Int64: ProcessRunner] = [:]
     private var canceledIds: Set<Int64> = []
 
+    /// Queueing exists because `start` spawns a process and returns
+    /// immediately: submitting a 30-link batch used to put 30 yt-dlp
+    /// processes (and their aria2c children) on the network at once, splitting
+    /// the bandwidth every which way and inviting rate-limiting.
+    private var maxConcurrent: Int
+    private var pending: [(downloadId: Int64, request: StartDownloadRequest)] = []
+
     public nonisolated let events: AsyncStream<DownloadEvent>
     private let eventsContinuation: AsyncStream<DownloadEvent>.Continuation
 
-    public init(ytdlpURL: URL, ffmpegURL: URL?, downloadRepo: DownloadRepository) {
+    public init(ytdlpURL: URL, ffmpegURL: URL?, downloadRepo: DownloadRepository, maxConcurrent: Int = 3) {
         self.ytdlpURL = ytdlpURL
         self.ffmpegURL = ffmpegURL
         self.downloadRepo = downloadRepo
+        self.maxConcurrent = max(1, maxConcurrent)
         var continuation: AsyncStream<DownloadEvent>.Continuation!
         self.events = AsyncStream { continuation = $0 }
         self.eventsContinuation = continuation
         try? downloadRepo.reconcileInterrupted()
     }
 
+    /// Raising the limit immediately admits whatever is already waiting;
+    /// lowering it only applies to downloads that haven't started yet, since
+    /// killing something already in progress to honour a settings change
+    /// would throw away the bytes it has fetched.
+    public func setMaxConcurrent(_ value: Int) {
+        maxConcurrent = max(1, value)
+        startNextPending()
+    }
+
+    /// Starts the download if there's a free slot, otherwise records it as
+    /// `.queued` and returns — the id is valid either way, and the row shows
+    /// up in Queue as waiting until a slot frees up.
     @discardableResult
     public func start(_ request: StartDownloadRequest) throws -> Int64 {
         let downloadId = try downloadRepo.insert(
             url: request.url, title: request.title, formatSelector: request.formatSelector, outputDir: request.outputDir
         )
 
+        guard runners.count < maxConcurrent else {
+            pending.append((downloadId: downloadId, request: request))
+            try? downloadRepo.setStatus(id: downloadId, status: .queued)
+            return downloadId
+        }
+
+        try launch(downloadId: downloadId, request: request)
+        return downloadId
+    }
+
+    private func launch(downloadId: Int64, request: StartDownloadRequest) throws {
         let tempDir = Self.tempDownloadDir(downloadId: downloadId)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         let args = Self.buildArguments(request: request, tempDir: tempDir, ffmpegURL: ffmpegURL)
@@ -81,10 +112,35 @@ public actor DownloadManager {
         runners[downloadId] = runner
 
         Task { await self.observe(runner: runner, downloadId: downloadId, outputDir: request.outputDir) }
-        return downloadId
+    }
+
+    /// Admits waiting downloads until the limit is reached. A launch failure
+    /// (e.g. the temp directory can't be created) marks that one as failed and
+    /// moves on rather than stalling the whole queue behind it.
+    private func startNextPending() {
+        while runners.count < maxConcurrent, !pending.isEmpty {
+            let next = pending.removeFirst()
+            do {
+                try launch(downloadId: next.downloadId, request: next.request)
+                try? downloadRepo.setStatus(id: next.downloadId, status: .downloading)
+            } catch {
+                try? downloadRepo.setStatus(id: next.downloadId, status: .error, errorMessage: "\(error)")
+                eventsContinuation.yield(.failed(downloadId: next.downloadId, message: "\(error)"))
+            }
+        }
     }
 
     public func cancel(downloadId: Int64) {
+        // A download still waiting its turn has no process to kill — drop it
+        // from the queue directly, or it would start later as if it had never
+        // been cancelled.
+        if let index = pending.firstIndex(where: { $0.downloadId == downloadId }) {
+            pending.remove(at: index)
+            try? downloadRepo.setStatus(id: downloadId, status: .canceled)
+            eventsContinuation.yield(.canceled(downloadId: downloadId))
+            return
+        }
+
         canceledIds.insert(downloadId)
         runners[downloadId]?.terminate()
     }
@@ -142,6 +198,9 @@ public actor DownloadManager {
     /// pattern proven in Phase 0's `externalCancelFlagDistinguishesUserCancelFromRealFailure`.
     private func finish(downloadId: Int64, exitCode: Int32, finalPath: String?, errorMessage: String?, outputDir: String) {
         runners[downloadId] = nil
+        // This slot is free now — admit whatever has been waiting for it
+        // before doing the (slower) bookkeeping below.
+        startNextPending()
         let tempDir = Self.tempDownloadDir(downloadId: downloadId)
 
         if canceledIds.remove(downloadId) != nil {

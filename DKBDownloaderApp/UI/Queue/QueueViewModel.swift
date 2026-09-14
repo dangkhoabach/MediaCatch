@@ -28,9 +28,18 @@ final class QueueViewModel {
         }
     }
 
+    /// Queued rows belong here too — they're accepted work waiting for a
+    /// slot, not history — and they sort after the running ones so the list
+    /// reads top-down as "in progress, then waiting".
     func refresh() {
         guard let all = try? AppServices.downloadRepo.list() else { return }
-        downloads = all.filter { $0.status == .downloading }
+        let active = all.filter { $0.status == .downloading || $0.status == .queued }
+        downloads = active.sorted { lhs, rhs in
+            if (lhs.status == .queued) != (rhs.status == .queued) {
+                return rhs.status == .queued
+            }
+            return (lhs.id ?? 0) < (rhs.id ?? 0)
+        }
     }
 
     func togglePause(_ id: Int64) async {

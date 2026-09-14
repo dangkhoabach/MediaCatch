@@ -4,6 +4,9 @@ import SwiftUI
 @MainActor
 private func statusLabel(_ status: DownloadStatus) -> String {
     switch status {
+    // Queued rows are filtered out of this list (they live in Queue until
+    // they start), but the switch still has to cover the case.
+    case .queued: return t("queue.waiting")
     case .downloading: return t("library.status.downloading")
     case .completed: return t("library.status.completed")
     case .error: return t("library.status.error")
@@ -13,6 +16,7 @@ private func statusLabel(_ status: DownloadStatus) -> String {
 
 private func statusColor(_ status: DownloadStatus) -> Color {
     switch status {
+    case .queued: return .secondary
     case .downloading: return .secondary
     case .completed: return .green
     case .error: return .red
