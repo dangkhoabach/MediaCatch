@@ -188,6 +188,13 @@ final class HomeViewModel {
         }
     }
 
+    /// How many metadata fetches run at once in batch mode. Each one is a
+    /// yt-dlp process doing its own network round-trip (~10s against YouTube
+    /// here), so fetching them one after another made a 20-link batch take
+    /// minutes. 4 keeps the wall-clock down without firing a whole batch at
+    /// the site at once.
+    private static let maxConcurrentBatchFetches = 4
+
     func submitBatch() async {
         var seen = Set<String>()
         let urls = batchText
@@ -206,40 +213,73 @@ final class HomeViewModel {
         let cookiesBrowser = AppSettings.cookiesBrowser()
         let useAria2c = AppSettings.useAria2c()
 
-        for index in urls.indices {
-            let itemUrl = urls[index]
-            guard isFetchableURL(itemUrl) else {
-                batchItems[index].status = .error
-                batchItems[index].message = t("error.invalidUrl")
-                continue
-            }
-            batchItems[index].status = .working
-            do {
-                let result = try await ytdlpClient.fetchVideoInfo(url: itemUrl, cookiesBrowser: cookiesBrowser)
-                try? urlHistoryRepo.upsert(url: itemUrl, title: result.title)
+        for index in urls.indices where !isFetchableURL(urls[index]) {
+            batchItems[index].status = .error
+            batchItems[index].message = t("error.invalidUrl")
+        }
+        let pending = urls.indices.filter { isFetchableURL(urls[$0]) }
 
-                let selector: String
-                if audioOnly {
-                    selector = "bestaudio/best"
-                } else {
-                    guard let best = result.formats.filter(\.hasVideo).max(by: { ($0.height ?? 0) < ($1.height ?? 0) }) else {
-                        throw YtdlpError.processFailed(t("home.noFormatSelected"))
+        // Captured locally so the task-group children don't touch this
+        // (main-actor-isolated) view model; `YtdlpClient` is a Sendable value.
+        let client = ytdlpClient
+        var cursor = 0
+        while cursor < pending.count {
+            let chunk = Array(pending[cursor..<min(cursor + Self.maxConcurrentBatchFetches, pending.count)])
+            cursor += chunk.count
+
+            for index in chunk { batchItems[index].status = .working }
+
+            let fetched = await withTaskGroup(of: (Int, VideoInfo?, String?).self) { group in
+                for index in chunk {
+                    let itemUrl = urls[index]
+                    group.addTask {
+                        do {
+                            let info = try await client.fetchVideoInfo(url: itemUrl, cookiesBrowser: cookiesBrowser)
+                            return (index, info, nil)
+                        } catch {
+                            return (index, nil, "\(error)")
+                        }
                     }
-                    selector = best.hasAudio ? best.formatId : "\(best.formatId)+bestaudio/best"
                 }
+                var results: [(Int, VideoInfo?, String?)] = []
+                for await result in group { results.append(result) }
+                // Results arrive in completion order; queue the downloads in
+                // the order the user typed them instead.
+                return results.sorted { $0.0 < $1.0 }
+            }
 
-                let request = StartDownloadRequest(
-                    url: itemUrl, title: result.title, formatSelector: selector,
-                    outputDir: outputDir, outputFormat: outputFormat,
-                    embedMetadata: embedMetadata, audioOnly: audioOnly,
-                    cookiesBrowser: cookiesBrowser, useAria2c: useAria2c
-                )
-                try await downloadManager.start(request)
-                batchItems[index].status = .done
-                batchItems[index].message = result.title
-            } catch {
-                batchItems[index].status = .error
-                batchItems[index].message = "\(error)"
+            for (index, info, fetchError) in fetched {
+                let itemUrl = urls[index]
+                guard let info else {
+                    batchItems[index].status = .error
+                    batchItems[index].message = fetchError
+                    continue
+                }
+                try? urlHistoryRepo.upsert(url: itemUrl, title: info.title)
+                do {
+                    let selector: String
+                    if audioOnly {
+                        selector = "bestaudio/best"
+                    } else {
+                        guard let best = info.formats.filter(\.hasVideo).max(by: { ($0.height ?? 0) < ($1.height ?? 0) }) else {
+                            throw YtdlpError.processFailed(t("home.noFormatSelected"))
+                        }
+                        selector = best.hasAudio ? best.formatId : "\(best.formatId)+bestaudio/best"
+                    }
+
+                    let request = StartDownloadRequest(
+                        url: itemUrl, title: info.title, formatSelector: selector,
+                        outputDir: outputDir, outputFormat: outputFormat,
+                        embedMetadata: embedMetadata, audioOnly: audioOnly,
+                        cookiesBrowser: cookiesBrowser, useAria2c: useAria2c
+                    )
+                    try await downloadManager.start(request)
+                    batchItems[index].status = .done
+                    batchItems[index].message = info.title
+                } catch {
+                    batchItems[index].status = .error
+                    batchItems[index].message = "\(error)"
+                }
             }
         }
     }
