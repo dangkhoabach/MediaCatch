@@ -7,14 +7,16 @@ struct DownloadManagerArgumentTests {
 
     private func request(
         embedMetadata: Bool = false, audioOnly: Bool = false, cookiesBrowser: String? = nil, useAria2c: Bool = false,
-        rateLimit: String? = nil, removeSponsorSegments: Bool = false, subtitleLanguages: String = "en,vi"
+        rateLimit: String? = nil, removeSponsorSegments: Bool = false, subtitleLanguages: String = "en,vi",
+        cookiesFile: String? = nil, splitChapters: Bool = false
     ) -> StartDownloadRequest {
         StartDownloadRequest(
             url: "https://example.com/v", title: "t", formatSelector: "best", outputDir: "/tmp/out",
             outputFormat: "mp4", embedMetadata: embedMetadata, audioOnly: audioOnly,
             cookiesBrowser: cookiesBrowser, useAria2c: useAria2c,
             rateLimit: rateLimit, removeSponsorSegments: removeSponsorSegments,
-            subtitleLanguages: subtitleLanguages
+            subtitleLanguages: subtitleLanguages,
+            cookiesFile: cookiesFile, splitChapters: splitChapters
         )
     }
 
@@ -121,6 +123,41 @@ struct DownloadManagerArgumentTests {
             request: request(embedMetadata: true, subtitleLanguages: "ja,ko"), tempDir: tempDir, ffmpegURL: nil
         )
         #expect(args.firstIndex(of: "--sub-langs").map { args[$0 + 1] } == "ja,ko")
+    }
+
+    @Test func cookiesFileReplacesTheBrowserOption() {
+        // yt-dlp refuses both at once, so they can never both appear.
+        let args = DownloadManager.buildArguments(
+            request: request(cookiesBrowser: "safari", cookiesFile: "/tmp/cookies.txt"),
+            tempDir: tempDir, ffmpegURL: nil
+        )
+        #expect(args.firstIndex(of: "--cookies").map { args[$0 + 1] } == "/tmp/cookies.txt")
+        #expect(!args.contains("--cookies-from-browser"))
+    }
+
+    @Test func cookiesFileIsOmittedWhenUnset() {
+        let args = DownloadManager.buildArguments(request: request(cookiesFile: ""), tempDir: tempDir, ffmpegURL: nil)
+        #expect(!args.contains("--cookies"))
+    }
+
+    /// The chapter files must be pinned to the temp dir. yt-dlp's built-in
+    /// `chapter:` template carries no directory and `-o` only sets the
+    /// `default` key, so leaving it out writes them relative to the process's
+    /// working directory — verified against 2026.08.19, where they landed in
+    /// the shell's cwd instead of beside the video.
+    @Test func splitChaptersAnchorsItsOutputTemplateToTheTempDir() {
+        let args = DownloadManager.buildArguments(
+            request: request(splitChapters: true), tempDir: tempDir, ffmpegURL: nil
+        )
+        #expect(args.contains("--split-chapters"))
+        let chapterTemplate = args.first { $0.hasPrefix("chapter:") }
+        #expect(chapterTemplate == "chapter:/tmp/dkb-downloader/1/%(title)s - %(section_number)03d %(section_title)s.%(ext)s")
+    }
+
+    @Test func splitChaptersFlagsAreAbsentByDefault() {
+        let args = DownloadManager.buildArguments(request: request(), tempDir: tempDir, ffmpegURL: nil)
+        #expect(!args.contains("--split-chapters"))
+        #expect(!args.contains { $0.hasPrefix("chapter:") })
     }
 
     @Test func outputTemplateUsesTempDirAndTitleExtPattern() {

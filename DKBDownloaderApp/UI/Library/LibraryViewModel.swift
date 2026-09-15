@@ -67,6 +67,8 @@ final class LibraryViewModel {
     /// audio-only download retried this way doesn't get the remux-for-
     /// thumbnail-embedding treatment, because `audio_only` isn't recorded
     /// either. Storing it would need a schema change for a case this small.
+    /// Chapter splitting is skipped here for the same reason — it's a
+    /// per-download choice made on Home, not a stored setting.
     func retry(_ record: Download) {
         Task {
             let request = StartDownloadRequest(
@@ -80,7 +82,8 @@ final class LibraryViewModel {
                 useAria2c: AppSettings.useAria2c(),
                 rateLimit: AppSettings.rateLimit(),
                 removeSponsorSegments: AppSettings.removeSponsorSegments(),
-                subtitleLanguages: AppSettings.subtitleLanguages()
+                subtitleLanguages: AppSettings.subtitleLanguages(),
+                cookiesFile: AppSettings.cookiesFile()
             )
             do {
                 try await AppServices.downloadManager.start(request)

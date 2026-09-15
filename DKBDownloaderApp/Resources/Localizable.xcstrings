@@ -243,6 +243,23 @@
         }
       }
     },
+    "home.splitChapters": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Split into {count} chapter files"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cắt thành {count} file theo chương"
+          }
+        }
+      }
+    },
     "home.playlistExpandError": {
       "extractionState": "manual",
       "localizations": {
@@ -842,6 +859,108 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dùng phiên đăng nhập của bạn cho nội dung riêng tư, giới hạn tuổi hoặc chỉ dành cho thành viên"
+          }
+        }
+      }
+    },
+    "settings.cookiesFile": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cookies file"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File cookies"
+          }
+        }
+      }
+    },
+    "settings.cookiesFile.choose": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chọn…"
+          }
+        }
+      }
+    },
+    "settings.cookiesFile.clear": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bỏ chọn"
+          }
+        }
+      }
+    },
+    "settings.cookiesFile.none": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not selected"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa chọn"
+          }
+        }
+      }
+    },
+    "settings.cookiesFileHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A cookies.txt exported from your browser. When set, it is used instead of the browser option above."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File cookies.txt xuất từ trình duyệt. Khi đã chọn, app dùng file này thay cho tuỳ chọn trình duyệt ở trên."
+          }
+        }
+      }
+    },
+    "settings.cookiesFileMissing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file no longer exists — cookies are not being used until you pick another one."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File này không còn tồn tại — app tạm không dùng cookie cho đến khi bạn chọn file khác."
           }
         }
       }

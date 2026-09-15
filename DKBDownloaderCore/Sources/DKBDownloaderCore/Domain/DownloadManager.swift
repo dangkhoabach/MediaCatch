@@ -9,6 +9,11 @@ public struct StartDownloadRequest: Sendable {
     public var embedMetadata: Bool
     public var audioOnly: Bool
     public var cookiesBrowser: String?
+    /// Path to a Netscape-format cookies.txt. Takes precedence over
+    /// `cookiesBrowser` — reading a browser's own store and reading an
+    /// exported file are two ways of doing the same thing, and passing both
+    /// to yt-dlp is an error.
+    public var cookiesFile: String?
     public var useAria2c: Bool
     /// A yt-dlp rate string such as "5M"; `nil` means no cap.
     public var rateLimit: String?
@@ -16,11 +21,14 @@ public struct StartDownloadRequest: Sendable {
     /// Comma-separated languages for `--sub-langs`. Only consulted when
     /// `embedMetadata` is on, which is what pulls subtitles in at all.
     public var subtitleLanguages: String
+    /// Writes one extra file per chapter alongside the full video.
+    public var splitChapters: Bool
 
     public init(
         url: String, title: String, formatSelector: String, outputDir: String, outputFormat: String,
         embedMetadata: Bool = false, audioOnly: Bool = false, cookiesBrowser: String? = nil, useAria2c: Bool = false,
-        rateLimit: String? = nil, removeSponsorSegments: Bool = false, subtitleLanguages: String = "en,vi"
+        rateLimit: String? = nil, removeSponsorSegments: Bool = false, subtitleLanguages: String = "en,vi",
+        cookiesFile: String? = nil, splitChapters: Bool = false
     ) {
         self.url = url
         self.title = title
@@ -34,6 +42,8 @@ public struct StartDownloadRequest: Sendable {
         self.rateLimit = rateLimit
         self.removeSponsorSegments = removeSponsorSegments
         self.subtitleLanguages = subtitleLanguages
+        self.cookiesFile = cookiesFile
+        self.splitChapters = splitChapters
     }
 }
 
@@ -121,7 +131,12 @@ public actor DownloadManager {
         let runner = try ProcessRunner(executableURL: ytdlpURL, arguments: args)
         runners[downloadId] = runner
 
-        Task { await self.observe(runner: runner, downloadId: downloadId, outputDir: request.outputDir) }
+        Task {
+            await self.observe(
+                runner: runner, downloadId: downloadId,
+                outputDir: request.outputDir, splitChapters: request.splitChapters
+            )
+        }
     }
 
     /// Admits waiting downloads until the limit is reached. A launch failure
@@ -175,7 +190,7 @@ public actor DownloadManager {
         runners[downloadId]?.resume() ?? false
     }
 
-    private func observe(runner: ProcessRunner, downloadId: Int64, outputDir: String) async {
+    private func observe(runner: ProcessRunner, downloadId: Int64, outputDir: String, splitChapters: Bool) async {
         var finalPath: String?
         var lastErrorLine: String?
         var exitCode: Int32 = 0
@@ -197,7 +212,10 @@ public actor DownloadManager {
             }
         }
 
-        finish(downloadId: downloadId, exitCode: exitCode, finalPath: finalPath, errorMessage: lastErrorLine, outputDir: outputDir)
+        finish(
+            downloadId: downloadId, exitCode: exitCode, finalPath: finalPath,
+            errorMessage: lastErrorLine, outputDir: outputDir, splitChapters: splitChapters
+        )
     }
 
     /// `cancel_download` already marks the row "canceled" and removed the
@@ -206,7 +224,10 @@ public actor DownloadManager {
     /// it triggers one too), so this must check `canceledIds` first and
     /// never let a killed-on-purpose process get treated as an error. Same
     /// pattern proven in Phase 0's `externalCancelFlagDistinguishesUserCancelFromRealFailure`.
-    private func finish(downloadId: Int64, exitCode: Int32, finalPath: String?, errorMessage: String?, outputDir: String) {
+    private func finish(
+        downloadId: Int64, exitCode: Int32, finalPath: String?, errorMessage: String?,
+        outputDir: String, splitChapters: Bool
+    ) {
         runners[downloadId] = nil
         // This slot is free now — admit whatever has been waiting for it
         // before doing the (slower) bookkeeping below.
@@ -226,6 +247,14 @@ public actor DownloadManager {
             try? FileManager.default.removeItem(at: tempDir)
             eventsContinuation.yield(.failed(downloadId: downloadId, message: message))
             return
+        }
+
+        // The chapter files are separate outputs that `--print
+        // after_move:filepath` never mentions, so they'd be thrown away with
+        // the temp dir below. The row keeps pointing at the full video, which
+        // is what Open/Reveal should land on.
+        if splitChapters {
+            Self.moveLeftoverFiles(tempDir: tempDir, outputDir: outputDir)
         }
 
         try? downloadRepo.setStatus(id: downloadId, status: .completed)
@@ -283,6 +312,22 @@ public actor DownloadManager {
                 return nil
             }
         }
+    }
+
+    /// Moves whatever is still sitting in the temp directory after the main
+    /// file has been taken out — the per-chapter files `--split-chapters`
+    /// writes. Best-effort on purpose: the download itself has already
+    /// succeeded, so a chapter file that can't be moved is worth skipping,
+    /// not worth failing the whole download over.
+    @discardableResult
+    static func moveLeftoverFiles(tempDir: URL, outputDir: String) -> [String] {
+        let contents = (try? FileManager.default.contentsOfDirectory(
+            at: tempDir, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]
+        )) ?? []
+        return contents
+            .filter { (try? $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+            .compactMap { moveToOutputDir(tempPath: $0.path, outputDir: outputDir) }
     }
 
     /// Builds the exact yt-dlp argument list for one download — pure and
@@ -347,7 +392,21 @@ public actor DownloadManager {
             args.append("sponsor")
         }
 
-        YtdlpClient.appendCookiesArg(&args, request.cookiesBrowser)
+        // Each chapter becomes its own file. The `chapter:` output template
+        // must be set explicitly: yt-dlp's built-in one carries no directory,
+        // and `-o` only sets the `default` key — so without this the chapter
+        // files are written relative to the *process's working directory*
+        // rather than next to the video (verified against 2026.08.19: they
+        // landed in the shell's cwd, which for the app is wherever Finder
+        // launched it from).
+        if request.splitChapters {
+            args.append("--split-chapters")
+            args.append("-o")
+            args.append("chapter:" + tempDir
+                .appendingPathComponent("%(title)s - %(section_number)03d %(section_title)s.%(ext)s").path)
+        }
+
+        YtdlpClient.appendCookiesArg(&args, browser: request.cookiesBrowser, file: request.cookiesFile)
 
         if request.useAria2c {
             args.append("--external-downloader")

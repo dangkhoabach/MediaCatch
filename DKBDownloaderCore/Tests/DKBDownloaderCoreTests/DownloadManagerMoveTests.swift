@@ -77,4 +77,41 @@ struct DownloadManagerMoveTests {
         #expect(DownloadManager.moveToOutputDir(tempPath: source.path, outputDir: outputDir.path)
             == outputDir.appendingPathComponent("video (1)").path)
     }
+
+    /// `--print after_move:filepath` reports only the merged video, so the
+    /// per-chapter files yt-dlp writes alongside it would be deleted with the
+    /// temp dir if nothing else picked them up.
+    @Test func leftoverChapterFilesAreMovedOutToo() throws {
+        let fm = FileManager.default
+        let tempDir = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let outputDir = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try fm.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        try fm.createDirectory(at: outputDir, withIntermediateDirectories: true)
+        defer {
+            try? fm.removeItem(at: tempDir)
+            try? fm.removeItem(at: outputDir)
+        }
+
+        for name in ["v - 001 Intro.mp4", "v - 002 Middle.mp4"] {
+            try "chapter".write(to: tempDir.appendingPathComponent(name), atomically: true, encoding: .utf8)
+        }
+        // Subdirectories aren't yt-dlp output; only regular files move.
+        try fm.createDirectory(at: tempDir.appendingPathComponent("sub"), withIntermediateDirectories: true)
+
+        let moved = DownloadManager.moveLeftoverFiles(tempDir: tempDir, outputDir: outputDir.path)
+
+        #expect(moved.count == 2)
+        #expect(fm.fileExists(atPath: outputDir.appendingPathComponent("v - 001 Intro.mp4").path))
+        #expect(fm.fileExists(atPath: outputDir.appendingPathComponent("v - 002 Middle.mp4").path))
+        #expect(fm.fileExists(atPath: tempDir.appendingPathComponent("sub").path))
+    }
+
+    @Test func movingLeftoversFromAnEmptyTempDirDoesNothing() throws {
+        let fm = FileManager.default
+        let tempDir = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try fm.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: tempDir) }
+
+        #expect(DownloadManager.moveLeftoverFiles(tempDir: tempDir, outputDir: "/tmp").isEmpty)
+    }
 }

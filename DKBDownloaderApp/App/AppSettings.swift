@@ -14,6 +14,7 @@ enum AppSettings {
         static let outputFormat = "dkb-downloader:outputFormat"
         static let embedMetadata = "dkb-downloader:embedMetadata"
         static let cookiesBrowser = "dkb-downloader:cookiesBrowser"
+        static let cookiesFile = "dkb-downloader:cookiesFile"
         static let useAria2c = "dkb-downloader:useAria2c"
         static let notificationsEnabled = "dkb-downloader:notificationsEnabled"
         static let maxConcurrentDownloads = "dkb-downloader:maxConcurrentDownloads"
@@ -48,6 +49,20 @@ enum AppSettings {
     static func cookiesBrowser() -> String? {
         let value = defaults.string(forKey: Keys.cookiesBrowser)
         return (value == nil || value == "none") ? nil : value
+    }
+
+    /// An exported cookies.txt, used instead of reading a browser's store.
+    ///
+    /// A path that no longer resolves is treated as unset. Handing it to
+    /// yt-dlp anyway isn't an error — verified against 2026.08.19, which
+    /// carries on without cookies and (under `--no-warnings`, which every
+    /// call here passes) says nothing at all. So the setting would quietly
+    /// stop working; Settings shows the broken path instead.
+    static func cookiesFile() -> String? {
+        guard let path = defaults.string(forKey: Keys.cookiesFile), !path.isEmpty,
+              FileManager.default.fileExists(atPath: path)
+        else { return nil }
+        return path
     }
 
     /// Off by default — requires the user to have aria2c installed separately.

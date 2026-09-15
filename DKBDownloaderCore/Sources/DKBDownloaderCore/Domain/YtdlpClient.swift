@@ -19,9 +19,9 @@ public struct YtdlpClient: Sendable {
         self.ytdlpURL = ytdlpURL
     }
 
-    public func fetchVideoInfo(url: String, cookiesBrowser: String? = nil) async throws -> VideoInfo {
+    public func fetchVideoInfo(url: String, cookiesBrowser: String? = nil, cookiesFile: String? = nil) async throws -> VideoInfo {
         var args = ["-j", "--no-playlist", "--no-warnings"]
-        Self.appendCookiesArg(&args, cookiesBrowser)
+        Self.appendCookiesArg(&args, browser: cookiesBrowser, file: cookiesFile)
         // See `DownloadManager.buildArguments` — `--` keeps a dash-leading
         // string from being parsed as an option instead of a URL.
         args.append("--")
@@ -52,11 +52,18 @@ public struct YtdlpClient: Sendable {
         try await dumpPlaylist(url: url, limit: nil).asPlaylistEntries()
     }
 
-    /// Reads cookies straight from an installed browser's own cookie store —
-    /// shared by `fetchVideoInfo` and `DownloadManager` so both use the same
-    /// browser choice consistently.
-    static func appendCookiesArg(_ args: inout [String], _ cookiesBrowser: String?) {
-        if let browser = cookiesBrowser, !browser.isEmpty {
+    /// Supplies cookies either from an exported Netscape-format file or
+    /// straight from an installed browser's own store — shared by
+    /// `fetchVideoInfo` and `DownloadManager` so both authenticate the same
+    /// way. yt-dlp rejects being given both, so the explicit file wins: it's
+    /// the one the user had to go out of their way to pick.
+    static func appendCookiesArg(_ args: inout [String], browser: String?, file: String? = nil) {
+        if let file, !file.isEmpty {
+            args.append("--cookies")
+            args.append(file)
+            return
+        }
+        if let browser, !browser.isEmpty {
             args.append("--cookies-from-browser")
             args.append(browser)
         }

@@ -17,6 +17,7 @@ struct SettingsView: View {
     @AppStorage("dkb-downloader:notificationsEnabled") private var notificationsEnabled = true
     @AppStorage("dkb-downloader:embedMetadata") private var embedMetadata = false
     @AppStorage("dkb-downloader:cookiesBrowser") private var cookiesBrowser = "none"
+    @AppStorage("dkb-downloader:cookiesFile") private var cookiesFile = ""
     @AppStorage("dkb-downloader:useAria2c") private var useAria2c = false
     @AppStorage("dkb-downloader:maxConcurrentDownloads") private var maxConcurrentDownloads = 3
     @AppStorage("dkb-downloader:clipboardSuggestions") private var clipboardSuggestions = true
@@ -92,6 +93,9 @@ struct SettingsView: View {
                 Text(t("settings.subtitleLanguagesHint")).font(.caption).foregroundStyle(.secondary)
                 Toggle(t("settings.useAria2c"), isOn: $useAria2c)
                 Text(t("settings.useAria2cHint")).font(.caption).foregroundStyle(.secondary)
+                // An exported file wins over the browser picker (yt-dlp
+                // refuses both at once), so the picker is disabled rather
+                // than left looking as though it still applies.
                 Picker(t("settings.cookiesBrowser"), selection: $cookiesBrowser) {
                     Text(t("settings.cookiesBrowser.none")).tag("none")
                     Text(t("settings.cookiesBrowser.safari")).tag("safari")
@@ -100,7 +104,30 @@ struct SettingsView: View {
                     Text(t("settings.cookiesBrowser.edge")).tag("edge")
                     Text(t("settings.cookiesBrowser.brave")).tag("brave")
                 }
+                .disabled(!cookiesFile.isEmpty)
                 Text(t("settings.cookiesBrowserHint")).font(.caption).foregroundStyle(.secondary)
+
+                HStack {
+                    Text(t("settings.cookiesFile"))
+                    Spacer()
+                    Text(cookiesFile.isEmpty ? t("settings.cookiesFile.none") : (cookiesFile as NSString).lastPathComponent)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Button(t("settings.cookiesFile.choose")) { browseCookiesFile() }
+                    if !cookiesFile.isEmpty {
+                        Button(t("settings.cookiesFile.clear")) { cookiesFile = "" }
+                    }
+                }
+                // A path saved earlier can stop resolving — the file was
+                // moved, or it lived in a folder that's since gone. Silently
+                // ignoring it (which is what AppSettings does) would look
+                // like the setting simply stopped working.
+                if !cookiesFile.isEmpty, !FileManager.default.fileExists(atPath: cookiesFile) {
+                    Text(t("settings.cookiesFileMissing")).font(.caption).foregroundStyle(.orange)
+                } else {
+                    Text(t("settings.cookiesFileHint")).font(.caption).foregroundStyle(.secondary)
+                }
             }
 
             Section(t("settings.section.ytdlp")) {
@@ -164,6 +191,20 @@ struct SettingsView: View {
         } catch {
             ytdlpUpdateMessage = t("settings.ytdlpUpdateError")
         }
+    }
+
+    /// Any file, not just one named cookies.txt — browser extensions export
+    /// these under all sorts of names, and the format is what matters.
+    private func browseCookiesFile() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowsMultipleSelection = false
+        if !cookiesFile.isEmpty {
+            panel.directoryURL = URL(fileURLWithPath: cookiesFile).deletingLastPathComponent()
+        }
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        cookiesFile = url.path
     }
 
     private func browseOutputDir() {

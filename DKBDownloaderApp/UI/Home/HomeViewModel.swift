@@ -30,6 +30,10 @@ final class HomeViewModel {
     var platform: String?
     var selectedFormatId: String?
     var audioOnly = false
+    /// Per-download rather than a setting: whether chapters are worth having
+    /// as separate files depends on the video in front of you, not on a
+    /// standing preference.
+    var splitChapters = false
     var starting = false
     var errorMessage: String?
 
@@ -146,7 +150,9 @@ final class HomeViewModel {
         defer { loading = false }
 
         do {
-            let result = try await ytdlpClient.fetchVideoInfo(url: trimmed, cookiesBrowser: AppSettings.cookiesBrowser())
+            let result = try await ytdlpClient.fetchVideoInfo(
+                url: trimmed, cookiesBrowser: AppSettings.cookiesBrowser(), cookiesFile: AppSettings.cookiesFile()
+            )
             info = result
             fetchedUrl = trimmed
             try? urlHistoryRepo.upsert(url: trimmed, title: result.title)
@@ -244,7 +250,9 @@ final class HomeViewModel {
             useAria2c: AppSettings.useAria2c(),
             rateLimit: AppSettings.rateLimit(),
             removeSponsorSegments: AppSettings.removeSponsorSegments(),
-            subtitleLanguages: AppSettings.subtitleLanguages()
+            subtitleLanguages: AppSettings.subtitleLanguages(),
+            cookiesFile: AppSettings.cookiesFile(),
+            splitChapters: splitChapters
         )
 
         do {
@@ -278,6 +286,7 @@ final class HomeViewModel {
         let outputFormat = AppSettings.outputFormat()
         let embedMetadata = AppSettings.embedMetadata()
         let cookiesBrowser = AppSettings.cookiesBrowser()
+        let cookiesFile = AppSettings.cookiesFile()
         let useAria2c = AppSettings.useAria2c()
         let rateLimit = AppSettings.rateLimit()
         let removeSponsorSegments = AppSettings.removeSponsorSegments()
@@ -304,7 +313,9 @@ final class HomeViewModel {
                     let itemUrl = urls[index]
                     group.addTask {
                         do {
-                            let info = try await client.fetchVideoInfo(url: itemUrl, cookiesBrowser: cookiesBrowser)
+                            let info = try await client.fetchVideoInfo(
+                                url: itemUrl, cookiesBrowser: cookiesBrowser, cookiesFile: cookiesFile
+                            )
                             return (index, info, nil)
                         } catch {
                             return (index, nil, "\(error)")
@@ -343,7 +354,13 @@ final class HomeViewModel {
                         embedMetadata: embedMetadata, audioOnly: audioOnly,
                         cookiesBrowser: cookiesBrowser, useAria2c: useAria2c,
                         rateLimit: rateLimit, removeSponsorSegments: removeSponsorSegments,
-                        subtitleLanguages: subtitleLanguages
+                        subtitleLanguages: subtitleLanguages,
+                        // Not split-chapters: that toggle is driven by the
+                        // fetched video's own chapter count, which batch mode
+                        // never has in front of the user. Carrying the
+                        // single-download toggle over silently would apply a
+                        // setting they can't see from here.
+                        cookiesFile: cookiesFile
                     )
                     try await downloadManager.start(request)
                     batchItems[index].status = .done

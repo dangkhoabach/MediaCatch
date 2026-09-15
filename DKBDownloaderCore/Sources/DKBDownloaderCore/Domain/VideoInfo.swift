@@ -8,6 +8,24 @@ struct YtDlpInfo: Decodable {
     let thumbnail: String?
     let duration: Double?
     let formats: [YtDlpFormat]?
+    let chapters: YtDlpChapterList?
+}
+
+/// Only how many chapters there are is ever used, so this reads the array's
+/// length without decoding the elements at all — and deliberately cannot
+/// throw. Chapter data is the one field here that varies wildly between
+/// extractors, and a surprise shape must not fail an otherwise perfectly
+/// good fetch; it degrades to "no chapters" instead.
+struct YtDlpChapterList: Decodable {
+    let count: Int
+
+    init(from decoder: Decoder) throws {
+        guard let container = try? decoder.unkeyedContainer() else {
+            self.count = 0
+            return
+        }
+        self.count = container.count ?? 0
+    }
 }
 
 struct YtDlpFormat: Decodable {
@@ -68,6 +86,9 @@ public struct VideoInfo: Sendable, Equatable {
     public let thumbnail: String?
     public let duration: Double?
     public let formats: [VideoFormat]
+    /// Drives whether splitting by chapter is offered at all — asking for it
+    /// on a video with none produces no extra files.
+    public let chapterCount: Int
 
     init(_ info: YtDlpInfo) {
         self.id = info.id
@@ -75,5 +96,6 @@ public struct VideoInfo: Sendable, Equatable {
         self.thumbnail = info.thumbnail
         self.duration = info.duration
         self.formats = (info.formats ?? []).map(VideoFormat.init)
+        self.chapterCount = info.chapters?.count ?? 0
     }
 }

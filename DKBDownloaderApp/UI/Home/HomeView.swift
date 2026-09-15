@@ -205,6 +205,19 @@ struct HomeView: View {
                         Label(t("home.audioOnly"), systemImage: "music.note")
                     }
                     .toggleStyle(.switch)
+
+                    // Only offered when the video actually has chapters —
+                    // yt-dlp would simply produce nothing extra otherwise,
+                    // which reads as the toggle being broken.
+                    if info.chapterCount > 0 {
+                        Toggle(isOn: $viewModel.splitChapters) {
+                            Label(
+                                t("home.splitChapters", ["count": String(info.chapterCount)]),
+                                systemImage: "scissors"
+                            )
+                        }
+                        .toggleStyle(.switch)
+                    }
                 }
             }
             .padding(12)

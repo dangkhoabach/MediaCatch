@@ -36,6 +36,33 @@ struct VideoInfoTests {
         #expect(both.hasVideo && both.hasAudio)
     }
 
+    @Test func countsChaptersWithoutDecodingThem() throws {
+        let json = """
+        {"id": "x", "title": "chaptered", "chapters": [
+            {"start_time": 0, "end_time": 10, "title": "Intro"},
+            {"start_time": 10, "title": "Rest"}
+        ]}
+        """
+        let decoded = try JSONDecoder().decode(YtDlpInfo.self, from: Data(json.utf8))
+        #expect(VideoInfo(decoded).chapterCount == 2)
+    }
+
+    /// Chapter data is the field that varies most between extractors, and a
+    /// shape we didn't anticipate must not fail an otherwise good fetch — it
+    /// degrades to "no chapters".
+    @Test func anUnexpectedChaptersShapeCountsAsNoChapters() throws {
+        for value in ["null", "\"none\"", "{}", "123"] {
+            let json = "{\"id\": \"x\", \"title\": \"t\", \"chapters\": \(value)}"
+            let decoded = try JSONDecoder().decode(YtDlpInfo.self, from: Data(json.utf8))
+            #expect(VideoInfo(decoded).chapterCount == 0, "chapters: \(value)")
+        }
+    }
+
+    @Test func missingChaptersFieldCountsAsNoChapters() throws {
+        let decoded = try JSONDecoder().decode(YtDlpInfo.self, from: Data(#"{"id": "x", "title": "t"}"#.utf8))
+        #expect(VideoInfo(decoded).chapterCount == 0)
+    }
+
     @Test func missingFormatsFieldDecodesToEmptyArray() throws {
         let json = """
         {"id": "x", "title": "no formats"}
