@@ -744,6 +744,23 @@
         }
       }
     },
+    "settings.browse": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browse…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chọn…"
+          }
+        }
+      }
+    },
     "settings.cookiesBrowser": {
       "extractionState": "manual",
       "localizations": {

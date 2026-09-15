@@ -126,11 +126,15 @@ final class HomeViewModel {
         }
     }
 
-    /// Cancelling the task terminates the child process; `fetchInfo`'s own
-    /// `defer` clears `loading` on the way out.
+    /// Cancelling the task terminates the child process. `loading` is
+    /// cleared here, right away, rather than by the cancelled task's own
+    /// `defer`: that task deliberately leaves `loading` alone once cancelled
+    /// (see `fetchInfo`), and the spinner should vanish on the click, not
+    /// whenever the killed process gets around to exiting.
     func cancelFetch() {
         fetchTask?.cancel()
         fetchTask = nil
+        loading = false
     }
 
     func fetchInfo(overrideUrl: String? = nil) async {
@@ -153,12 +157,22 @@ final class HomeViewModel {
         platform = detectPlatform(trimmed)
         selectedFormatId = nil
         fetchWarnings = []
-        defer { loading = false }
+        // Only the fetch that is still current may clear `loading`. When
+        // `startFetch` replaces this one, the new task has already set
+        // `loading = true` by the time this task's killed process exits and
+        // this `defer` runs — unconditionally clearing it here would hide
+        // the spinner (and re-enable Fetch) while the replacement is still
+        // in flight. A cancelled task's flag is cleared by `cancelFetch`
+        // instead.
+        defer { if !Task.isCancelled { loading = false } }
 
         do {
             let fetched = try await ytdlpClient.fetchVideoInfo(
                 url: trimmed, cookiesBrowser: AppSettings.cookiesBrowser(), cookiesFile: AppSettings.cookiesFile()
             )
+            // Cancelled after the process had already finished: the result is
+            // for a URL nobody is waiting on any more.
+            guard !Task.isCancelled else { return }
             let result = fetched.info
             info = result
             fetchWarnings = fetched.warnings
@@ -185,9 +199,12 @@ final class HomeViewModel {
 
     private func expandPlaylist(_ playlistUrl: String) async {
         loading = true
-        defer { loading = false }
+        // Same rule as `fetchInfo`: a replaced or cancelled expansion leaves
+        // `loading` to whoever took over.
+        defer { if !Task.isCancelled { loading = false } }
         do {
             let entries = try await ytdlpClient.expandPlaylist(url: playlistUrl)
+            guard !Task.isCancelled else { return }
             guard !entries.isEmpty else {
                 errorMessage = t("home.playlistEmpty")
                 return
@@ -259,7 +276,11 @@ final class HomeViewModel {
             rateLimit: AppSettings.rateLimit(),
             subtitleLanguages: AppSettings.subtitleLanguages(),
             cookiesFile: AppSettings.cookiesFile(),
-            splitChapters: splitChapters
+            // The toggle is only shown when the video has chapters; the
+            // property itself keeps its last value across fetches, so a
+            // "split" left on for an earlier video must not silently ride
+            // along into one whose toggle the user never saw.
+            splitChapters: splitChapters && info.chapterCount > 0
         )
 
         do {

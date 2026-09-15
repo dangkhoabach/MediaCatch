@@ -44,6 +44,25 @@ struct DownloadManagerQueueTests {
         await manager.terminateAll()
     }
 
+    /// The row is inserted before the process is spawned, so a spawn that
+    /// fails outright (the binary isn't there) used to leave it `.downloading`
+    /// with nothing behind it — a permanent Queue entry until the next
+    /// launch's reconcile relabelled it as "interrupted".
+    @Test func aLaunchThatFailsMarksTheRowAsErrorInsteadOfLeavingItDownloading() async throws {
+        let repo = try makeRepo()
+        let missing = FileManager.default.temporaryDirectory.appendingPathComponent("no-such-ytdlp-\(UUID().uuidString)")
+        let manager = DownloadManager(ytdlpURL: missing, ffmpegURL: nil, downloadRepo: repo, maxConcurrent: 2)
+
+        await #expect(throws: (any Error).self) {
+            try await manager.start(request("doomed"))
+        }
+
+        let rows = try repo.list()
+        #expect(rows.count == 1)
+        #expect(rows.first?.status == .error)
+        #expect(rows.first?.errorMessage?.isEmpty == false)
+    }
+
     @Test func cancellingAQueuedDownloadNeverStartsIt() async throws {
         let repo = try makeRepo()
         let manager = DownloadManager(

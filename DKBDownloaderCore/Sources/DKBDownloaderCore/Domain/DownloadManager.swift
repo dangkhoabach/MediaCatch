@@ -117,7 +117,18 @@ public actor DownloadManager {
             return downloadId
         }
 
-        try launch(downloadId: downloadId, request: request)
+        // The row was inserted as `.downloading` above; if the process can't
+        // even be spawned it must not stay that way, or it sits in Queue with
+        // Cancel/Pause as no-ops until the next launch's reconcile marks it
+        // "interrupted" — which it wasn't. `startNextPending` already handles
+        // the same failure for queued rows; this is the direct-launch path.
+        do {
+            try launch(downloadId: downloadId, request: request)
+        } catch {
+            try? downloadRepo.setStatus(id: downloadId, status: .error, errorMessage: "\(error)")
+            try? FileManager.default.removeItem(at: Self.tempDownloadDir(downloadId: downloadId))
+            throw error
+        }
         return downloadId
     }
 

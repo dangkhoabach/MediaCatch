@@ -33,7 +33,7 @@ struct SettingsView: View {
             Section(t("settings.section.output")) {
                 HStack {
                     TextField(t("settings.outputDir"), text: $outputDir).disabled(true)
-                    Button("Browse…") { browseOutputDir() }
+                    Button(t("settings.browse")) { browseOutputDir() }
                 }
                 Picker(t("settings.outputFormat"), selection: $outputFormat) {
                     Text("MP4").tag("mp4")
