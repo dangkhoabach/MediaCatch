@@ -1,0 +1,57 @@
+name: Native (Swift) CI
+
+# Build + test only. Releasing stays entirely local (scripts/release.sh), so
+# nothing here touches signing keys, the Sparkle EdDSA key, or any other
+# secret — this workflow only ever needs a plain checkout.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "DKBDownloaderApp/**"
+      - "DKBDownloaderCore/**"
+      - "project.yml"
+      - ".github/workflows/native-ci.yml"
+  pull_request:
+    paths:
+      - "DKBDownloaderApp/**"
+      - "DKBDownloaderCore/**"
+      - "project.yml"
+      - ".github/workflows/native-ci.yml"
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # LibraryView compiles an `if #available(macOS 26.0, *)` branch, so the
+      # SDK has to know macOS 26 even though the deployment target is 14.0.
+      # Picking the newest Xcode on the runner is what makes that hold; if a
+      # runner image ever lags behind, this is the step whose output explains
+      # the compile error that follows.
+      - name: Select latest available Xcode
+        run: |
+          LATEST=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          echo "Using $LATEST"
+          sudo xcode-select -s "$LATEST"
+          xcodebuild -version
+
+      - name: Test DKBDownloaderCore (headless package)
+        working-directory: DKBDownloaderCore
+        run: swift test
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      # The sidecar binaries are gitignored (large, self-updating), so a fresh
+      # checkout won't have them. project.yml's bundling step warns and skips
+      # rather than failing — this job only needs the app to compile and link,
+      # not to run a real download.
+      - name: Build DKBDownloaderApp
+        run: |
+          xcodebuild -project DKBDownloaderNative.xcodeproj -scheme DKBDownloaderApp -configuration Debug build \
+            CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO

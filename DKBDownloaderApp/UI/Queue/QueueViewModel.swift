@@ -40,6 +40,17 @@ final class QueueViewModel {
             }
             return (lhs.id ?? 0) < (rhs.id ?? 0)
         }
+
+        // Forget the paused flag once a download leaves the queue, whatever
+        // took it out (cancel, failure, a quit's reconcile). Pruning against
+        // the active list rather than hooking each exit path means no new way
+        // of finishing can leave an entry behind. Nothing user-visible hangs
+        // on it — ids are AUTOINCREMENT, so a stale one can never attach
+        // itself to a later download — but the set would otherwise only ever
+        // grow for as long as the app runs.
+        if !pausedIds.isEmpty {
+            pausedIds.formIntersection(downloads.compactMap(\.id))
+        }
     }
 
     func togglePause(_ id: Int64) async {
