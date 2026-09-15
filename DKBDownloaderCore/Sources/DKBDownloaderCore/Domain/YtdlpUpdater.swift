@@ -28,7 +28,7 @@ public struct YtdlpUpdater: Sendable {
     /// when it just updated.
     public func updateIfNeeded(urlSession: URLSession = .shared) async throws -> String? {
         let currentVersion = try await YtdlpClient.run(ytdlpURL, ["--version"])
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .stdout.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let releaseURL = URL(string: "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest")!
         let (releaseData, _) = try await urlSession.data(from: releaseURL)

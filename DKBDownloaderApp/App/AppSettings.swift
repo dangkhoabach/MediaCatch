@@ -53,10 +53,11 @@ enum AppSettings {
     /// An exported cookies.txt, used instead of reading a browser's store.
     ///
     /// A path that no longer resolves is treated as unset. Handing it to
-    /// yt-dlp anyway isn't an error — verified against 2026.08.19, which
-    /// carries on without cookies and (under `--no-warnings`, which every
-    /// call here passes) says nothing at all. So the setting would quietly
-    /// stop working; Settings shows the broken path instead.
+    /// yt-dlp anyway isn't an error — verified against 2026.08.19, which just
+    /// carries on without cookies. It doesn't even warn: re-checked with
+    /// warnings fully enabled, the way fetches now run, and it says nothing at
+    /// all. So this check is the only thing standing between the user and a
+    /// setting that silently stopped working; Settings flags the broken path.
     static func cookiesFile() -> String? {
         guard let path = defaults.string(forKey: Keys.cookiesFile), !path.isEmpty,
               FileManager.default.fileExists(atPath: path)

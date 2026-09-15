@@ -33,6 +33,7 @@ struct HomeView: View {
                     batchSection
                 } else {
                     fetchSection
+                    warningsSection
                     if let info = viewModel.info {
                         infoSection(info)
                     }
@@ -108,6 +109,36 @@ struct HomeView: View {
             return true
         }
         return false
+    }
+
+    /// yt-dlp's own warnings from the last successful fetch. Deliberately
+    /// understated — orange, not red, and never blocking — because the fetch
+    /// did work; this is "here's why the result might be worse than you
+    /// expect", not a failure. Selectable since the warnings tend to carry a
+    /// URL explaining what to install.
+    @ViewBuilder
+    private var warningsSection: some View {
+        if !viewModel.fetchWarnings.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(t("home.ytdlpWarning"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
+                ForEach(viewModel.fetchWarnings, id: \.self) { warning in
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text(warning)
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        }
     }
 
     private var fetchSection: some View {

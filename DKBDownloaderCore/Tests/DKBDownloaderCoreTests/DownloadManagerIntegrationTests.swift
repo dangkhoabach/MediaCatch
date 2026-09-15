@@ -8,10 +8,10 @@ struct DownloadManagerIntegrationTests {
         guard integrationTestsEnabled, let ytdlp = ytdlpBinaryURL() else { return }
 
         let client = YtdlpClient(ytdlpURL: ytdlp)
-        let info = try await client.fetchVideoInfo(url: stableTestVideoURL)
+        let fetched = try await client.fetchVideoInfo(url: stableTestVideoURL)
 
-        #expect(info.id == "jNQXAC9IVRw")
-        #expect(!info.formats.isEmpty)
+        #expect(fetched.info.id == "jNQXAC9IVRw")
+        #expect(!fetched.info.formats.isEmpty)
     }
 
     /// Full pipeline: start a real download through DownloadManager, drain

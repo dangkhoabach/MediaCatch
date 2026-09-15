@@ -36,6 +36,11 @@ final class HomeViewModel {
     var splitChapters = false
     var starting = false
     var errorMessage: String?
+    /// What yt-dlp complained about during the last fetch that still succeeded.
+    /// Shown rather than swallowed because this is how a degraded extraction
+    /// announces itself — "some formats may be missing" — and without it a
+    /// site change looks like the app silently getting worse.
+    private(set) var fetchWarnings: [String] = []
 
     var batchMode = false
     var batchText = ""
@@ -147,13 +152,16 @@ final class HomeViewModel {
         fetchedUrl = nil
         platform = detectPlatform(trimmed)
         selectedFormatId = nil
+        fetchWarnings = []
         defer { loading = false }
 
         do {
-            let result = try await ytdlpClient.fetchVideoInfo(
+            let fetched = try await ytdlpClient.fetchVideoInfo(
                 url: trimmed, cookiesBrowser: AppSettings.cookiesBrowser(), cookiesFile: AppSettings.cookiesFile()
             )
+            let result = fetched.info
             info = result
+            fetchWarnings = fetched.warnings
             fetchedUrl = trimmed
             try? urlHistoryRepo.upsert(url: trimmed, title: result.title)
             selectedFormatId = defaultFormatId(for: result, audioOnly: audioOnly)
@@ -311,10 +319,14 @@ final class HomeViewModel {
                     let itemUrl = urls[index]
                     group.addTask {
                         do {
-                            let info = try await client.fetchVideoInfo(
+                            // Batch rows have their own per-item status line and
+                            // no room for a paragraph of yt-dlp prose, so the
+                            // warnings are dropped here; the single-video path
+                            // is where they're surfaced.
+                            let fetched = try await client.fetchVideoInfo(
                                 url: itemUrl, cookiesBrowser: cookiesBrowser, cookiesFile: cookiesFile
                             )
-                            return (index, info, nil)
+                            return (index, fetched.info, nil)
                         } catch {
                             return (index, nil, "\(error)")
                         }

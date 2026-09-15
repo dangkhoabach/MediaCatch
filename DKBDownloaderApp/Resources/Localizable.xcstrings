@@ -294,6 +294,23 @@
         }
       }
     },
+    "home.ytdlpWarning": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp reported:"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp báo:"
+          }
+        }
+      }
+    },
     "library.deleteError": {
       "extractionState": "manual",
       "localizations": {
