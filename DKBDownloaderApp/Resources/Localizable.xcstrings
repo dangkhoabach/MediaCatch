@@ -2142,40 +2142,6 @@
         }
       }
     },
-    "settings.removeSponsors": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cut sponsor segments (SponsorBlock)"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cắt đoạn quảng cáo (SponsorBlock)"
-          }
-        }
-      }
-    },
-    "settings.removeSponsorsHint": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uses community-reported timestamps; only sponsor reads are cut, and the video is re-encoded around each cut"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dùng mốc thời gian do cộng đồng đóng góp; chỉ cắt đoạn đọc quảng cáo, và video sẽ được mã hoá lại quanh mỗi vết cắt"
-          }
-        }
-      }
-    },
     "settings.subtitleLanguages": {
       "extractionState": "manual",
       "localizations": {

@@ -15,6 +15,9 @@ this repo's own source).
 - Build source: https://evermeet.cx/ffmpeg/ (static macOS binary, x86_64 —
   evermeet.cx does not publish arm64 builds; runs via Rosetta 2 on Apple
   Silicon)
+- Pinned version: **9.0.1**, fetched from its versioned URL and checked against
+  a SHA-256 recorded in `scripts/fetch-sidecars.sh`, so the bundled binary is
+  always a known, reproducible build rather than whatever was current that day
 - Upstream project: https://ffmpeg.org/
 - **License: GPL v3** (this specific build is compiled with `--enable-gpl
   --enable-version3` and includes GPL-licensed components such as libx264/libx265)

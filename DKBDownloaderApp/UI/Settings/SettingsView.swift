@@ -22,7 +22,6 @@ struct SettingsView: View {
     @AppStorage("dkb-downloader:maxConcurrentDownloads") private var maxConcurrentDownloads = 3
     @AppStorage("dkb-downloader:clipboardSuggestions") private var clipboardSuggestions = true
     @AppStorage("dkb-downloader:rateLimitMBs") private var rateLimitMBs = 0
-    @AppStorage("dkb-downloader:removeSponsorSegments") private var removeSponsorSegments = false
     @AppStorage("dkb-downloader:subtitleLanguages") private var subtitleLanguages = "en,vi"
 
     @State private var ytdlpVersion: String?
@@ -82,8 +81,6 @@ struct SettingsView: View {
                         Text("\(megabytes) MB/s").tag(megabytes)
                     }
                 }
-                Toggle(t("settings.removeSponsors"), isOn: $removeSponsorSegments)
-                Text(t("settings.removeSponsorsHint")).font(.caption).foregroundStyle(.secondary)
                 Toggle(t("settings.embedMetadata"), isOn: $embedMetadata)
                 Text(t("settings.embedMetadataHint")).font(.caption).foregroundStyle(.secondary)
                 // Only has an effect with embedding on — that's what pulls

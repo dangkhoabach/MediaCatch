@@ -20,7 +20,6 @@ enum AppSettings {
         static let maxConcurrentDownloads = "dkb-downloader:maxConcurrentDownloads"
         static let clipboardSuggestions = "dkb-downloader:clipboardSuggestions"
         static let rateLimitMBs = "dkb-downloader:rateLimitMBs"
-        static let removeSponsorSegments = "dkb-downloader:removeSponsorSegments"
         static let subtitleLanguages = "dkb-downloader:subtitleLanguages"
     }
 
@@ -84,12 +83,6 @@ enum AppSettings {
     static func rateLimit() -> String? {
         let megabytesPerSecond = defaults.integer(forKey: Keys.rateLimitMBs)
         return megabytesPerSecond > 0 ? "\(megabytesPerSecond)M" : nil
-    }
-
-    /// Off by default: it re-encodes around the cut points, and someone who
-    /// hasn't asked for it would rather have the untouched video.
-    static func removeSponsorSegments() -> Bool {
-        defaults.bool(forKey: Keys.removeSponsorSegments)
     }
 
     /// Only used when metadata embedding is on, which is what pulls subtitles

@@ -7,15 +7,14 @@ struct DownloadManagerArgumentTests {
 
     private func request(
         embedMetadata: Bool = false, audioOnly: Bool = false, cookiesBrowser: String? = nil, useAria2c: Bool = false,
-        rateLimit: String? = nil, removeSponsorSegments: Bool = false, subtitleLanguages: String = "en,vi",
+        rateLimit: String? = nil, subtitleLanguages: String = "en,vi",
         cookiesFile: String? = nil, splitChapters: Bool = false
     ) -> StartDownloadRequest {
         StartDownloadRequest(
             url: "https://example.com/v", title: "t", formatSelector: "best", outputDir: "/tmp/out",
             outputFormat: "mp4", embedMetadata: embedMetadata, audioOnly: audioOnly,
             cookiesBrowser: cookiesBrowser, useAria2c: useAria2c,
-            rateLimit: rateLimit, removeSponsorSegments: removeSponsorSegments,
-            subtitleLanguages: subtitleLanguages,
+            rateLimit: rateLimit, subtitleLanguages: subtitleLanguages,
             cookiesFile: cookiesFile, splitChapters: splitChapters
         )
     }
@@ -108,14 +107,14 @@ struct DownloadManagerArgumentTests {
         #expect(!uncapped.contains("--limit-rate"))
     }
 
-    @Test func sponsorBlockRemovesOnlyTheSponsorCategory() {
-        let args = DownloadManager.buildArguments(
-            request: request(removeSponsorSegments: true), tempDir: tempDir, ffmpegURL: nil
-        )
-        #expect(args.firstIndex(of: "--sponsorblock-remove").map { args[$0 + 1] } == "sponsor")
-
-        let off = DownloadManager.buildArguments(request: request(), tempDir: tempDir, ffmpegURL: nil)
-        #expect(!off.contains("--sponsorblock-remove"))
+    /// `--sponsorblock-remove` needs ffprobe, which isn't bundled, so enabling
+    /// it made yt-dlp exit non-zero in post-processing — which marks the row
+    /// failed and deletes the temp dir, discarding a file that had already
+    /// downloaded. The option is gone; this pins that it stays gone until
+    /// ffprobe ships alongside ffmpeg.
+    @Test func noSponsorBlockFlagIsEverPassed() {
+        let args = DownloadManager.buildArguments(request: request(), tempDir: tempDir, ffmpegURL: nil)
+        #expect(!args.contains { $0.hasPrefix("--sponsorblock") })
     }
 
     @Test func subtitleLanguagesAreConfigurable() {

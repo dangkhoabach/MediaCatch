@@ -249,7 +249,6 @@ final class HomeViewModel {
             cookiesBrowser: AppSettings.cookiesBrowser(),
             useAria2c: AppSettings.useAria2c(),
             rateLimit: AppSettings.rateLimit(),
-            removeSponsorSegments: AppSettings.removeSponsorSegments(),
             subtitleLanguages: AppSettings.subtitleLanguages(),
             cookiesFile: AppSettings.cookiesFile(),
             splitChapters: splitChapters
@@ -289,7 +288,6 @@ final class HomeViewModel {
         let cookiesFile = AppSettings.cookiesFile()
         let useAria2c = AppSettings.useAria2c()
         let rateLimit = AppSettings.rateLimit()
-        let removeSponsorSegments = AppSettings.removeSponsorSegments()
         let subtitleLanguages = AppSettings.subtitleLanguages()
 
         for index in urls.indices where !isFetchableURL(urls[index]) {
@@ -353,8 +351,7 @@ final class HomeViewModel {
                         outputDir: outputDir, outputFormat: outputFormat,
                         embedMetadata: embedMetadata, audioOnly: audioOnly,
                         cookiesBrowser: cookiesBrowser, useAria2c: useAria2c,
-                        rateLimit: rateLimit, removeSponsorSegments: removeSponsorSegments,
-                        subtitleLanguages: subtitleLanguages,
+                        rateLimit: rateLimit, subtitleLanguages: subtitleLanguages,
                         // Not split-chapters: that toggle is driven by the
                         // fetched video's own chapter count, which batch mode
                         // never has in front of the user. Carrying the

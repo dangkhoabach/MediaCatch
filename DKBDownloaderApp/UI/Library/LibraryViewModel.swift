@@ -81,7 +81,6 @@ final class LibraryViewModel {
                 cookiesBrowser: AppSettings.cookiesBrowser(),
                 useAria2c: AppSettings.useAria2c(),
                 rateLimit: AppSettings.rateLimit(),
-                removeSponsorSegments: AppSettings.removeSponsorSegments(),
                 subtitleLanguages: AppSettings.subtitleLanguages(),
                 cookiesFile: AppSettings.cookiesFile()
             )

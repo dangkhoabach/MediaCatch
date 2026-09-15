@@ -17,7 +17,6 @@ public struct StartDownloadRequest: Sendable {
     public var useAria2c: Bool
     /// A yt-dlp rate string such as "5M"; `nil` means no cap.
     public var rateLimit: String?
-    public var removeSponsorSegments: Bool
     /// Comma-separated languages for `--sub-langs`. Only consulted when
     /// `embedMetadata` is on, which is what pulls subtitles in at all.
     public var subtitleLanguages: String
@@ -27,7 +26,7 @@ public struct StartDownloadRequest: Sendable {
     public init(
         url: String, title: String, formatSelector: String, outputDir: String, outputFormat: String,
         embedMetadata: Bool = false, audioOnly: Bool = false, cookiesBrowser: String? = nil, useAria2c: Bool = false,
-        rateLimit: String? = nil, removeSponsorSegments: Bool = false, subtitleLanguages: String = "en,vi",
+        rateLimit: String? = nil, subtitleLanguages: String = "en,vi",
         cookiesFile: String? = nil, splitChapters: Bool = false
     ) {
         self.url = url
@@ -40,7 +39,6 @@ public struct StartDownloadRequest: Sendable {
         self.cookiesBrowser = cookiesBrowser
         self.useAria2c = useAria2c
         self.rateLimit = rateLimit
-        self.removeSponsorSegments = removeSponsorSegments
         self.subtitleLanguages = subtitleLanguages
         self.cookiesFile = cookiesFile
         self.splitChapters = splitChapters
@@ -384,14 +382,16 @@ public actor DownloadManager {
             args.append(rateLimit)
         }
 
-        // Only "sponsor" — the other SponsorBlock categories (intros,
-        // outros, self-promo) are far more subjective about what counts, and
-        // cutting them by default would silently remove wanted footage.
-        if request.removeSponsorSegments {
-            args.append("--sponsorblock-remove")
-            args.append("sponsor")
-        }
-
+        // No `--sponsorblock-remove` here on purpose: it needs ffprobe, which
+        // this app doesn't bundle, so it failed every download it was enabled
+        // for — yt-dlp exits non-zero during post-processing, which marks the
+        // row failed and deletes the temp dir, throwing away a file that had
+        // already downloaded successfully. Bundling ffprobe would fix it at
+        // the cost of ~77 MB (roughly doubling the DMG) for a feature that
+        // only does anything on videos someone has already marked up in the
+        // SponsorBlock database — overwhelmingly long-form English content,
+        // and essentially never music videos.
+        //
         // Each chapter becomes its own file. The `chapter:` output template
         // must be set explicitly: yt-dlp's built-in one carries no directory,
         // and `-o` only sets the `default` key — so without this the chapter
