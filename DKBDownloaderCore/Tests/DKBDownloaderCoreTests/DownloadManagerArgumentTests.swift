@@ -6,12 +6,15 @@ struct DownloadManagerArgumentTests {
     private let tempDir = URL(fileURLWithPath: "/tmp/dkb-downloader/1")
 
     private func request(
-        embedMetadata: Bool = false, audioOnly: Bool = false, cookiesBrowser: String? = nil, useAria2c: Bool = false
+        embedMetadata: Bool = false, audioOnly: Bool = false, cookiesBrowser: String? = nil, useAria2c: Bool = false,
+        rateLimit: String? = nil, removeSponsorSegments: Bool = false, subtitleLanguages: String = "en,vi"
     ) -> StartDownloadRequest {
         StartDownloadRequest(
             url: "https://example.com/v", title: "t", formatSelector: "best", outputDir: "/tmp/out",
             outputFormat: "mp4", embedMetadata: embedMetadata, audioOnly: audioOnly,
-            cookiesBrowser: cookiesBrowser, useAria2c: useAria2c
+            cookiesBrowser: cookiesBrowser, useAria2c: useAria2c,
+            rateLimit: rateLimit, removeSponsorSegments: removeSponsorSegments,
+            subtitleLanguages: subtitleLanguages
         )
     }
 
@@ -93,6 +96,31 @@ struct DownloadManagerArgumentTests {
         let args = DownloadManager.buildArguments(request: request(), tempDir: tempDir, ffmpegURL: ffmpeg)
         let index = args.firstIndex(of: "--ffmpeg-location")
         #expect(index.map { args[$0 + 1] } == "/opt/app/ffmpeg")
+    }
+
+    @Test func rateLimitIsPassedOnlyWhenSet() {
+        let capped = DownloadManager.buildArguments(request: request(rateLimit: "5M"), tempDir: tempDir, ffmpegURL: nil)
+        #expect(capped.firstIndex(of: "--limit-rate").map { capped[$0 + 1] } == "5M")
+
+        let uncapped = DownloadManager.buildArguments(request: request(), tempDir: tempDir, ffmpegURL: nil)
+        #expect(!uncapped.contains("--limit-rate"))
+    }
+
+    @Test func sponsorBlockRemovesOnlyTheSponsorCategory() {
+        let args = DownloadManager.buildArguments(
+            request: request(removeSponsorSegments: true), tempDir: tempDir, ffmpegURL: nil
+        )
+        #expect(args.firstIndex(of: "--sponsorblock-remove").map { args[$0 + 1] } == "sponsor")
+
+        let off = DownloadManager.buildArguments(request: request(), tempDir: tempDir, ffmpegURL: nil)
+        #expect(!off.contains("--sponsorblock-remove"))
+    }
+
+    @Test func subtitleLanguagesAreConfigurable() {
+        let args = DownloadManager.buildArguments(
+            request: request(embedMetadata: true, subtitleLanguages: "ja,ko"), tempDir: tempDir, ffmpegURL: nil
+        )
+        #expect(args.firstIndex(of: "--sub-langs").map { args[$0 + 1] } == "ja,ko")
     }
 
     @Test func outputTemplateUsesTempDirAndTitleExtPattern() {

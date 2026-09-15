@@ -1988,6 +1988,108 @@
           }
         }
       }
+    },
+    "settings.rateLimit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speed limit"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giới hạn tốc độ"
+          }
+        }
+      }
+    },
+    "settings.rateLimit.unlimited": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlimited"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không giới hạn"
+          }
+        }
+      }
+    },
+    "settings.removeSponsors": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cut sponsor segments (SponsorBlock)"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cắt đoạn quảng cáo (SponsorBlock)"
+          }
+        }
+      }
+    },
+    "settings.removeSponsorsHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uses community-reported timestamps; only sponsor reads are cut, and the video is re-encoded around each cut"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dùng mốc thời gian do cộng đồng đóng góp; chỉ cắt đoạn đọc quảng cáo, và video sẽ được mã hoá lại quanh mỗi vết cắt"
+          }
+        }
+      }
+    },
+    "settings.subtitleLanguages": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subtitle languages"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngôn ngữ phụ đề"
+          }
+        }
+      }
+    },
+    "settings.subtitleLanguagesHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comma-separated, e.g. en,vi — only used when embedding is on"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cách nhau bằng dấu phẩy, ví dụ en,vi — chỉ dùng khi bật nhúng dữ liệu"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

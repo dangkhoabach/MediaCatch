@@ -18,6 +18,9 @@ enum AppSettings {
         static let notificationsEnabled = "dkb-downloader:notificationsEnabled"
         static let maxConcurrentDownloads = "dkb-downloader:maxConcurrentDownloads"
         static let clipboardSuggestions = "dkb-downloader:clipboardSuggestions"
+        static let rateLimitMBs = "dkb-downloader:rateLimitMBs"
+        static let removeSponsorSegments = "dkb-downloader:removeSponsorSegments"
+        static let subtitleLanguages = "dkb-downloader:subtitleLanguages"
     }
 
     /// Falls back to the OS Downloads folder and persists it the first time
@@ -59,6 +62,26 @@ enum AppSettings {
     static func maxConcurrentDownloads() -> Int {
         let stored = defaults.integer(forKey: Keys.maxConcurrentDownloads)
         return stored > 0 ? stored : 3
+    }
+
+    /// A yt-dlp rate string ("5M"), or `nil` for no cap — 0/absent means
+    /// unlimited, which is the default.
+    static func rateLimit() -> String? {
+        let megabytesPerSecond = defaults.integer(forKey: Keys.rateLimitMBs)
+        return megabytesPerSecond > 0 ? "\(megabytesPerSecond)M" : nil
+    }
+
+    /// Off by default: it re-encodes around the cut points, and someone who
+    /// hasn't asked for it would rather have the untouched video.
+    static func removeSponsorSegments() -> Bool {
+        defaults.bool(forKey: Keys.removeSponsorSegments)
+    }
+
+    /// Only used when metadata embedding is on, which is what pulls subtitles
+    /// in at all. Empty falls back to the previous hardcoded pair.
+    static func subtitleLanguages() -> String {
+        let stored = defaults.string(forKey: Keys.subtitleLanguages)?.trimmingCharacters(in: .whitespaces)
+        return (stored?.isEmpty == false ? stored : nil) ?? "en,vi"
     }
 
     /// On by default — it's the point of the feature, and it only ever fills

@@ -10,10 +10,17 @@ public struct StartDownloadRequest: Sendable {
     public var audioOnly: Bool
     public var cookiesBrowser: String?
     public var useAria2c: Bool
+    /// A yt-dlp rate string such as "5M"; `nil` means no cap.
+    public var rateLimit: String?
+    public var removeSponsorSegments: Bool
+    /// Comma-separated languages for `--sub-langs`. Only consulted when
+    /// `embedMetadata` is on, which is what pulls subtitles in at all.
+    public var subtitleLanguages: String
 
     public init(
         url: String, title: String, formatSelector: String, outputDir: String, outputFormat: String,
-        embedMetadata: Bool = false, audioOnly: Bool = false, cookiesBrowser: String? = nil, useAria2c: Bool = false
+        embedMetadata: Bool = false, audioOnly: Bool = false, cookiesBrowser: String? = nil, useAria2c: Bool = false,
+        rateLimit: String? = nil, removeSponsorSegments: Bool = false, subtitleLanguages: String = "en,vi"
     ) {
         self.url = url
         self.title = title
@@ -24,6 +31,9 @@ public struct StartDownloadRequest: Sendable {
         self.audioOnly = audioOnly
         self.cookiesBrowser = cookiesBrowser
         self.useAria2c = useAria2c
+        self.rateLimit = rateLimit
+        self.removeSponsorSegments = removeSponsorSegments
+        self.subtitleLanguages = subtitleLanguages
     }
 }
 
@@ -320,8 +330,21 @@ public actor DownloadManager {
                 args.append("best")
             }
             args.append("--sub-langs")
-            args.append("en,vi")
+            args.append(request.subtitleLanguages)
             args.append("--embed-subs")
+        }
+
+        if let rateLimit = request.rateLimit, !rateLimit.isEmpty {
+            args.append("--limit-rate")
+            args.append(rateLimit)
+        }
+
+        // Only "sponsor" — the other SponsorBlock categories (intros,
+        // outros, self-promo) are far more subjective about what counts, and
+        // cutting them by default would silently remove wanted footage.
+        if request.removeSponsorSegments {
+            args.append("--sponsorblock-remove")
+            args.append("sponsor")
         }
 
         YtdlpClient.appendCookiesArg(&args, request.cookiesBrowser)

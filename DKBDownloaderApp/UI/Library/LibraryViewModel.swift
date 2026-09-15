@@ -77,7 +77,10 @@ final class LibraryViewModel {
                 outputFormat: AppSettings.outputFormat(),
                 embedMetadata: AppSettings.embedMetadata(),
                 cookiesBrowser: AppSettings.cookiesBrowser(),
-                useAria2c: AppSettings.useAria2c()
+                useAria2c: AppSettings.useAria2c(),
+                rateLimit: AppSettings.rateLimit(),
+                removeSponsorSegments: AppSettings.removeSponsorSegments(),
+                subtitleLanguages: AppSettings.subtitleLanguages()
             )
             do {
                 try await AppServices.downloadManager.start(request)

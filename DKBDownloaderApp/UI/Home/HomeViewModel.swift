@@ -241,7 +241,10 @@ final class HomeViewModel {
             embedMetadata: AppSettings.embedMetadata(),
             audioOnly: !format.hasVideo && format.hasAudio,
             cookiesBrowser: AppSettings.cookiesBrowser(),
-            useAria2c: AppSettings.useAria2c()
+            useAria2c: AppSettings.useAria2c(),
+            rateLimit: AppSettings.rateLimit(),
+            removeSponsorSegments: AppSettings.removeSponsorSegments(),
+            subtitleLanguages: AppSettings.subtitleLanguages()
         )
 
         do {
@@ -276,6 +279,9 @@ final class HomeViewModel {
         let embedMetadata = AppSettings.embedMetadata()
         let cookiesBrowser = AppSettings.cookiesBrowser()
         let useAria2c = AppSettings.useAria2c()
+        let rateLimit = AppSettings.rateLimit()
+        let removeSponsorSegments = AppSettings.removeSponsorSegments()
+        let subtitleLanguages = AppSettings.subtitleLanguages()
 
         for index in urls.indices where !isFetchableURL(urls[index]) {
             batchItems[index].status = .error
@@ -335,7 +341,9 @@ final class HomeViewModel {
                         url: itemUrl, title: info.title, formatSelector: selector,
                         outputDir: outputDir, outputFormat: outputFormat,
                         embedMetadata: embedMetadata, audioOnly: audioOnly,
-                        cookiesBrowser: cookiesBrowser, useAria2c: useAria2c
+                        cookiesBrowser: cookiesBrowser, useAria2c: useAria2c,
+                        rateLimit: rateLimit, removeSponsorSegments: removeSponsorSegments,
+                        subtitleLanguages: subtitleLanguages
                     )
                     try await downloadManager.start(request)
                     batchItems[index].status = .done

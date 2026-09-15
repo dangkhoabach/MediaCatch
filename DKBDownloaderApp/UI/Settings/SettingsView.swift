@@ -20,6 +20,9 @@ struct SettingsView: View {
     @AppStorage("dkb-downloader:useAria2c") private var useAria2c = false
     @AppStorage("dkb-downloader:maxConcurrentDownloads") private var maxConcurrentDownloads = 3
     @AppStorage("dkb-downloader:clipboardSuggestions") private var clipboardSuggestions = true
+    @AppStorage("dkb-downloader:rateLimitMBs") private var rateLimitMBs = 0
+    @AppStorage("dkb-downloader:removeSponsorSegments") private var removeSponsorSegments = false
+    @AppStorage("dkb-downloader:subtitleLanguages") private var subtitleLanguages = "en,vi"
 
     @State private var ytdlpVersion: String?
     @State private var checkingYtdlpUpdate = false
@@ -72,8 +75,21 @@ struct SettingsView: View {
                 Text(t("settings.maxConcurrentHint")).font(.caption).foregroundStyle(.secondary)
                 Toggle(t("settings.clipboardSuggestions"), isOn: $clipboardSuggestions)
                 Text(t("settings.clipboardSuggestionsHint")).font(.caption).foregroundStyle(.secondary)
+                Picker(t("settings.rateLimit"), selection: $rateLimitMBs) {
+                    Text(t("settings.rateLimit.unlimited")).tag(0)
+                    ForEach([1, 2, 5, 10], id: \.self) { megabytes in
+                        Text("\(megabytes) MB/s").tag(megabytes)
+                    }
+                }
+                Toggle(t("settings.removeSponsors"), isOn: $removeSponsorSegments)
+                Text(t("settings.removeSponsorsHint")).font(.caption).foregroundStyle(.secondary)
                 Toggle(t("settings.embedMetadata"), isOn: $embedMetadata)
                 Text(t("settings.embedMetadataHint")).font(.caption).foregroundStyle(.secondary)
+                // Only has an effect with embedding on — that's what pulls
+                // subtitles in to begin with.
+                TextField(t("settings.subtitleLanguages"), text: $subtitleLanguages)
+                    .disabled(!embedMetadata)
+                Text(t("settings.subtitleLanguagesHint")).font(.caption).foregroundStyle(.secondary)
                 Toggle(t("settings.useAria2c"), isOn: $useAria2c)
                 Text(t("settings.useAria2cHint")).font(.caption).foregroundStyle(.secondary)
                 Picker(t("settings.cookiesBrowser"), selection: $cookiesBrowser) {
