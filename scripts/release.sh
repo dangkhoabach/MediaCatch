@@ -37,6 +37,22 @@ if [ ! -f vendor/binaries/yt-dlp-aarch64-apple-darwin ] || [ ! -f vendor/binarie
   ./scripts/fetch-sidecars.sh
 fi
 
+# fetch-sidecars.sh verifies what it downloads, but it only runs when the
+# files are missing — a binary already sitting in vendor/binaries (from an
+# older, unverified fetch, or from anywhere at all) would otherwise be bundled
+# as-is. Check it against the same pin before it goes into a release.
+# shellcheck source=sidecar-pins.sh
+source ./scripts/sidecar-pins.sh
+echo "==> Verifying bundled ffmpeg against scripts/sidecar-pins.sh"
+ACTUAL_FFMPEG_BINARY_SHA=$(shasum -a 256 vendor/binaries/ffmpeg-x86_64-apple-darwin | awk '{print $1}')
+if [ "$FFMPEG_BINARY_SHA256" != "$ACTUAL_FFMPEG_BINARY_SHA" ]; then
+  echo "Error: vendor/binaries/ffmpeg-x86_64-apple-darwin is not the pinned ffmpeg $FFMPEG_VERSION" >&2
+  echo "  expected $FFMPEG_BINARY_SHA256" >&2
+  echo "  got      $ACTUAL_FFMPEG_BINARY_SHA" >&2
+  echo "Re-run scripts/fetch-sidecars.sh to replace it with a verified copy." >&2
+  exit 1
+fi
+
 echo "==> Testing DKBDownloaderCore"
 (cd DKBDownloaderCore && swift test)
 

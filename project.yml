@@ -22,7 +22,17 @@ packages:
     path: DKBDownloaderCore
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
-    from: "2.6.4"
+    # Exact, not `from:`. release.sh runs `swift test` inside DKBDownloaderCore
+    # before building, and that rewrites DKBDownloaderCore/Package.resolved —
+    # the file Xcode also uses for this project — with only the Core package's
+    # own pins, dropping Sparkle's. The build then re-resolves Sparkle against
+    # this line, so a `from:` range would quietly ship whatever 2.x was newest
+    # that day: an unreviewed update to the one component that installs code
+    # on users' machines, in a pipeline that otherwise pins Sparkle's CLI
+    # tools by SHA-256. Bump this deliberately. (SPARKLE_VERSION in
+    # scripts/release.sh is the separate CLI-tools download used for signing;
+    # the two don't have to match — the EdDSA format is stable across 2.x.)
+    exactVersion: "2.9.6"
 targets:
   DKBDownloaderApp:
     type: application
@@ -42,8 +52,9 @@ targets:
         CFBundleShortVersionString: "2.0.3"
         CFBundleVersion: "2.0.3"
         LSUIElement: false
-        # Sparkle (Phase 7). SUPublicEDKey is a placeholder until a real
-        # EdDSA keypair is generated — run (see docs/release.md):
+        # Sparkle (Phase 7). SUPublicEDKey is the real public half of the
+        # EdDSA keypair every release is signed with; it was generated once
+        # with (see docs/release.md):
         #   sparkle-tools/bin/generate_keys --account dkb-downloader
         # The --account flag is required: without it, generate_keys/sign_update
         # fall back to the Keychain's default "ed25519" account, which is

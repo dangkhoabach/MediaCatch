@@ -41,9 +41,10 @@ echo "  yt-dlp: $(vendor/binaries/yt-dlp-aarch64-apple-darwin --version)"
 # evermeet.cx only publishes x86_64 builds (see ../THIRD-PARTY-NOTICES.md for
 # why) — it runs fine under Rosetta 2 on Apple Silicon, same binary for both
 # target-triple names.
-# Pinned version + checksum, rather than "whatever /info/ffmpeg/release points
-# at today". This binary is bundled into every build, so an unverified download
-# would ship straight to users — the same reason yt-dlp is checksummed above.
+# Pinned version + checksum (scripts/sidecar-pins.sh), rather than "whatever
+# /info/ffmpeg/release points at today". This binary is bundled into every
+# build, so an unverified download would ship straight to users — the same
+# reason yt-dlp is checksummed above.
 #
 # Why a hardcoded hash and not a published checksum file: evermeet.cx publishes
 # only a GPG signature per file (no SHA sums), and verifying that would need
@@ -51,11 +52,8 @@ echo "  yt-dlp: $(vendor/binaries/yt-dlp-aarch64-apple-darwin --version)"
 # same tamper-detection with no extra tooling, and matches how release.sh
 # already pins Sparkle. Old versions stay downloadable at their versioned URLs
 # (checked back to 6.0), so pinning doesn't rot the moment a new one lands.
-#
-# To bump: set FFMPEG_VERSION, run this script, and it prints the SHA it got;
-# check that against https://evermeet.cx/ffmpeg/ and paste it in below.
-FFMPEG_VERSION="9.0.1"
-FFMPEG_ZIP_SHA256="8a8c9e549983409fe6604b9aa665648b7a5def9407fe814c39c8b2ea7f64a48f"
+# shellcheck source=sidecar-pins.sh
+source "$(dirname "$0")/sidecar-pins.sh"
 
 echo "Downloading static ffmpeg $FFMPEG_VERSION (evermeet.cx, x86_64 — runs via Rosetta on Apple Silicon)..."
 curl -fL -o /tmp/ffmpeg-sidecar.zip "https://evermeet.cx/ffmpeg/ffmpeg-$FFMPEG_VERSION.zip"
@@ -71,6 +69,19 @@ if [ "$FFMPEG_ZIP_SHA256" != "$ACTUAL_FFMPEG_SHA" ]; then
 fi
 
 unzip -o /tmp/ffmpeg-sidecar.zip -d /tmp/ffmpeg-sidecar-extract
+
+# The zip hash already proves the download is genuine; this second check is
+# what release.sh repeats against the file on disk, so pin it here too and
+# fail early if the two constants ever disagree.
+ACTUAL_FFMPEG_BINARY_SHA=$(shasum -a 256 /tmp/ffmpeg-sidecar-extract/ffmpeg | awk '{print $1}')
+if [ "$FFMPEG_BINARY_SHA256" != "$ACTUAL_FFMPEG_BINARY_SHA" ]; then
+  echo "Error: extracted ffmpeg binary doesn't match FFMPEG_BINARY_SHA256 in scripts/sidecar-pins.sh" >&2
+  echo "  expected $FFMPEG_BINARY_SHA256" >&2
+  echo "  got      $ACTUAL_FFMPEG_BINARY_SHA" >&2
+  rm -rf /tmp/ffmpeg-sidecar.zip /tmp/ffmpeg-sidecar-extract
+  exit 1
+fi
+
 cp /tmp/ffmpeg-sidecar-extract/ffmpeg vendor/binaries/ffmpeg-aarch64-apple-darwin
 cp /tmp/ffmpeg-sidecar-extract/ffmpeg vendor/binaries/ffmpeg-x86_64-apple-darwin
 chmod +x vendor/binaries/ffmpeg-aarch64-apple-darwin vendor/binaries/ffmpeg-x86_64-apple-darwin

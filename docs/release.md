@@ -106,3 +106,12 @@ rebuilt): `project.yml`'s `postbuildScripts` copies
 built without real binaries checked out ships without a working ffmpeg
 (yt-dlp self-updates on first launch via `YtdlpUpdater`, so it's less
 critical there).
+
+Both binaries are checksum-verified: yt-dlp against the `SHA2-256SUMS` file
+published with its release, ffmpeg against the version and SHA-256 pinned in
+`scripts/sidecar-pins.sh` (evermeet.cx publishes only GPG signatures, no
+checksum file, so the pin is kept here). `release.sh` re-checks the ffmpeg
+already on disk against that same pin before building and refuses to
+continue on a mismatch — so a binary that never went through
+`fetch-sidecars.sh` can't end up in a DMG. To move to a newer ffmpeg, follow
+the bump note at the top of `sidecar-pins.sh`.
