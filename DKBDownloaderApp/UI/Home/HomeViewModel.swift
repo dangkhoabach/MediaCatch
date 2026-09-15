@@ -1,3 +1,4 @@
+import AppKit
 import DKBDownloaderCore
 import Foundation
 import Observation
@@ -77,6 +78,33 @@ final class HomeViewModel {
             if suffixes.contains(where: { host == $0 || host.hasSuffix(".\($0)") }) { return label }
         }
         return nil
+    }
+
+    /// The last clipboard value offered, so returning to the app repeatedly
+    /// doesn't keep re-filling a field the user deliberately cleared.
+    private var lastClipboardSuggestion: String?
+
+    /// Fills the URL field from the clipboard when the app comes forward —
+    /// the usual flow is "copy a link in the browser, switch here".
+    ///
+    /// Deliberately conservative: it never fetches on its own (that stays an
+    /// explicit press), never overwrites something already typed, and only
+    /// acts on a full http(s) link, so ordinary copied text doesn't land in
+    /// the field.
+    func suggestClipboardURL() {
+        guard AppSettings.clipboardSuggestions() else { return }
+        guard url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard let raw = NSPasteboard.general.string(forType: .string) else { return }
+
+        let candidate = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard candidate != lastClipboardSuggestion,
+              let components = URLComponents(string: candidate),
+              let scheme = components.scheme?.lowercased(), scheme == "http" || scheme == "https",
+              let host = components.host, !host.isEmpty
+        else { return }
+
+        lastClipboardSuggestion = candidate
+        url = candidate
     }
 
     /// Entry point for every "go fetch this" action in the UI. Replaces any

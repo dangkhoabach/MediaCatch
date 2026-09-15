@@ -1,3 +1,4 @@
+import AppKit
 import DKBDownloaderCore
 import SwiftUI
 import UniformTypeIdentifiers
@@ -74,6 +75,14 @@ struct HomeView: View {
         // falling back to plain text — matching the old `text/uri-list` then
         // `text/plain` fallback.
         .onDrop(of: [.url, .plainText], isTargeted: nil, perform: handleDrop)
+        // "Copy a link in the browser, switch back here" is the common path,
+        // so offer it on activation — and on first appearance, since the app
+        // may already be frontmost when Home is first shown.
+        .onAppear { viewModel.suggestClipboardURL() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            guard navigation.selectedSection == .home else { return }
+            viewModel.suggestClipboardURL()
+        }
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {

@@ -1920,6 +1920,74 @@
           }
         }
       }
+    },
+    "library.retry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thử lại"
+          }
+        }
+      }
+    },
+    "library.retryError": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't start this download again"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không khởi động lại được lượt tải này"
+          }
+        }
+      }
+    },
+    "settings.clipboardSuggestions": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offer links from the clipboard"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gợi ý link từ clipboard"
+          }
+        }
+      }
+    },
+    "settings.clipboardSuggestionsHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fills the empty URL field when you switch back to the app; nothing is fetched until you press Fetch"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tự điền vào ô URL đang trống khi bạn quay lại app; chỉ tải khi bạn bấm Fetch"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

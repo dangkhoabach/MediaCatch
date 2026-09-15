@@ -17,6 +17,7 @@ enum AppSettings {
         static let useAria2c = "dkb-downloader:useAria2c"
         static let notificationsEnabled = "dkb-downloader:notificationsEnabled"
         static let maxConcurrentDownloads = "dkb-downloader:maxConcurrentDownloads"
+        static let clipboardSuggestions = "dkb-downloader:clipboardSuggestions"
     }
 
     /// Falls back to the OS Downloads folder and persists it the first time
@@ -58,6 +59,13 @@ enum AppSettings {
     static func maxConcurrentDownloads() -> Int {
         let stored = defaults.integer(forKey: Keys.maxConcurrentDownloads)
         return stored > 0 ? stored : 3
+    }
+
+    /// On by default — it's the point of the feature, and it only ever fills
+    /// an empty URL field with a full http(s) link; nothing is fetched until
+    /// the user presses Fetch. Absent means "never set", not `Bool`'s zero.
+    static func clipboardSuggestions() -> Bool {
+        defaults.object(forKey: Keys.clipboardSuggestions) == nil ? true : defaults.bool(forKey: Keys.clipboardSuggestions)
     }
 
     /// On by default (mirrors `settings.ts::getNotificationsEnabled`'s

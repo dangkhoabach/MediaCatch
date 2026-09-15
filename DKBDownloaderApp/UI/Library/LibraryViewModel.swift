@@ -57,6 +57,37 @@ final class LibraryViewModel {
         }
     }
 
+    /// Re-runs a download that failed or was cancelled, reusing the url,
+    /// format selector and output folder already on the row.
+    ///
+    /// The rest of the options (output format, metadata embedding, cookies,
+    /// aria2c) aren't stored per download, so this takes them from the current
+    /// settings. That only differs from the original run if those settings
+    /// changed since — with one narrow exception worth knowing about: an
+    /// audio-only download retried this way doesn't get the remux-for-
+    /// thumbnail-embedding treatment, because `audio_only` isn't recorded
+    /// either. Storing it would need a schema change for a case this small.
+    func retry(_ record: Download) {
+        Task {
+            let request = StartDownloadRequest(
+                url: record.url,
+                title: record.title,
+                formatSelector: record.formatSelector,
+                outputDir: record.outputDir,
+                outputFormat: AppSettings.outputFormat(),
+                embedMetadata: AppSettings.embedMetadata(),
+                cookiesBrowser: AppSettings.cookiesBrowser(),
+                useAria2c: AppSettings.useAria2c()
+            )
+            do {
+                try await AppServices.downloadManager.start(request)
+                AppNavigationState.shared.selectedSection = .queue
+            } catch {
+                errorMessage = "\(t("library.retryError")): \(error)"
+            }
+        }
+    }
+
     func open(_ path: String) {
         if !NSWorkspace.shared.open(URL(fileURLWithPath: path)) {
             errorMessage = t("library.openError")

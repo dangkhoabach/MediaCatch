@@ -19,6 +19,7 @@ struct SettingsView: View {
     @AppStorage("dkb-downloader:cookiesBrowser") private var cookiesBrowser = "none"
     @AppStorage("dkb-downloader:useAria2c") private var useAria2c = false
     @AppStorage("dkb-downloader:maxConcurrentDownloads") private var maxConcurrentDownloads = 3
+    @AppStorage("dkb-downloader:clipboardSuggestions") private var clipboardSuggestions = true
 
     @State private var ytdlpVersion: String?
     @State private var checkingYtdlpUpdate = false
@@ -69,6 +70,8 @@ struct SettingsView: View {
                     Task { await AppServices.downloadManager.setMaxConcurrent(value) }
                 }
                 Text(t("settings.maxConcurrentHint")).font(.caption).foregroundStyle(.secondary)
+                Toggle(t("settings.clipboardSuggestions"), isOn: $clipboardSuggestions)
+                Text(t("settings.clipboardSuggestionsHint")).font(.caption).foregroundStyle(.secondary)
                 Toggle(t("settings.embedMetadata"), isOn: $embedMetadata)
                 Text(t("settings.embedMetadataHint")).font(.caption).foregroundStyle(.secondary)
                 Toggle(t("settings.useAria2c"), isOn: $useAria2c)

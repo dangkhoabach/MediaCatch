@@ -166,6 +166,14 @@ struct LibraryView: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel(t("library.reveal"))
             }
+            // Everything a retry needs (url, format, folder) is already on the
+            // row, so a failed or cancelled download doesn't have to be set up
+            // again by hand.
+            if record.status == .error || record.status == .canceled {
+                Button { viewModel.retry(record) } label: { Image(systemName: "arrow.clockwise") }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(t("library.retry"))
+            }
             Button { pendingDeleteDownload = record } label: {
                 Image(systemName: "trash")
             }
