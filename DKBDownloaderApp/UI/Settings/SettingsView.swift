@@ -27,6 +27,7 @@ struct SettingsView: View {
     @State private var ytdlpVersion: String?
     @State private var checkingYtdlpUpdate = false
     @State private var ytdlpUpdateMessage: String?
+    @State private var automaticUpdateChecks = AppUpdater.automaticallyChecksForUpdates
 
     var body: some View {
         Form {
@@ -142,6 +143,21 @@ struct SettingsView: View {
                 }
             }
 
+            Section(t("settings.section.updates")) {
+                Toggle(t("settings.autoUpdateChecks"), isOn: Binding(
+                    get: { automaticUpdateChecks },
+                    set: {
+                        automaticUpdateChecks = $0
+                        AppUpdater.automaticallyChecksForUpdates = $0
+                    }
+                ))
+                Text(t("settings.autoUpdateChecksHint")).font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Spacer()
+                    Button(t("settings.checkAppUpdateNow")) { AppUpdater.checkForUpdates() }
+                }
+            }
+
             Section(t("settings.notifications")) {
                 Toggle(t("settings.notifications"), isOn: $notificationsEnabled)
                     .onChange(of: notificationsEnabled) { _, enabled in
@@ -160,6 +176,8 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .onAppear {
             if outputDir.isEmpty { outputDir = AppSettings.ensureOutputDir() }
+            // Sparkle's first-launch prompt can change this after the view was built.
+            automaticUpdateChecks = AppUpdater.automaticallyChecksForUpdates
         }
         .task { ytdlpVersion = await queryYtdlpVersion() }
     }

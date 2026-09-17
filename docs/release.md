@@ -50,10 +50,12 @@ Developer ID identity + `xcrun notarytool` step added back in.
    "Applications" were essentially unreadable against it. Back to Finder's
    plain default background, where the labels are legible.
 
-Once a first version has been uploaded (see below), flip
-`SUEnableAutomaticChecks` to `true` in `project.yml` — it's `false` until
-then, otherwise Sparkle pops an "Unable to Check for Updates" alert on
-every launch since there's no feed to reach yet.
+`project.yml` deliberately does not set `SUEnableAutomaticChecks` (same as
+DKB Monitor): leaving it out lets Sparkle show its own first-launch "check
+automatically?" prompt and store the answer, which Settings › Updates then
+reads and writes. Hardcoding it to `true` would skip that prompt and phone
+home daily without asking. `AppDelegate` touches `AppUpdater.shared` at
+launch so the scheduled check actually starts — the controller is lazy.
 
 ## Cutting a release
 

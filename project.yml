@@ -69,9 +69,11 @@ targets:
         # upload (installer + Sparkle sig), same as DKB Monitor.
         SUFeedURL: https://updates.dangkhoabach.vn/dkb-downloader/appcast.xml
         SUPublicEDKey: hvmFdDbYmuPf983aZmLLmbqgOIUD8Cqna2g+iJinLLg=
-        # First release (2.0.2) is live at SUFeedURL, so automatic checks
-        # are safe to enable now — Sparkle has a real appcast to reach.
-        SUEnableAutomaticChecks: true
+        # Deliberately NOT setting SUEnableAutomaticChecks (same as DKB
+        # Monitor). Hardcoding it to true suppressed Sparkle's own
+        # first-launch permission prompt, so the app contacted the update
+        # server every day without ever asking. Leaving the key out lets
+        # that prompt run, and Settings › Updates can flip the answer later.
         SUScheduledCheckInterval: 86400
     entitlements:
       path: DKBDownloaderApp/DKBDownloaderApp.entitlements

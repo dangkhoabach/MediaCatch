@@ -1,11 +1,19 @@
 import Sparkle
 
 /// Thin wrapper around Sparkle's `SPUStandardUpdaterController` — reads
-/// `SUFeedURL`/`SUPublicEDKey`/`SUEnableAutomaticChecks` straight from
-/// Info.plist (Phase 7), so no manual delegate wiring is needed for the
-/// baseline "check on launch + Check for Updates… menu item" behavior.
-/// Copied from DKB Monitor's already-proven `native/` code (Mục 1.5 in
-/// docs/swift-native-port-plan.md).
+/// `SUFeedURL`/`SUPublicEDKey` straight from Info.plist (Phase 7), so no
+/// manual delegate wiring is needed for the baseline "check on launch +
+/// Check for Updates… menu item" behavior. Copied from DKB Monitor's
+/// already-proven code (Mục 1.5 in docs/swift-native-port-plan.md).
+///
+/// Whether it checks on its own is the user's answer, not a build setting:
+/// Info.plist no longer pins `SUEnableAutomaticChecks`, so Sparkle asks on
+/// first launch and stores the reply, and `automaticallyChecksForUpdates`
+/// below is the same stored value that Settings › Updates reads and writes.
+///
+/// `shared` is lazy, so something has to touch it at launch (AppDelegate
+/// does) — otherwise the scheduled check never starts until the user opens
+/// the Check for Updates… menu item themselves.
 @MainActor
 enum AppUpdater {
     static let shared = SPUStandardUpdaterController(
@@ -13,6 +21,14 @@ enum AppUpdater {
         updaterDelegate: nil,
         userDriverDelegate: nil
     )
+
+    /// Round-trips Sparkle's own preference rather than shadowing it in
+    /// `@AppStorage` — a second copy would drift from the answer Sparkle
+    /// actually acts on.
+    static var automaticallyChecksForUpdates: Bool {
+        get { shared.updater.automaticallyChecksForUpdates }
+        set { shared.updater.automaticallyChecksForUpdates = newValue }
+    }
 
     static func checkForUpdates() {
         shared.checkForUpdates(nil)
