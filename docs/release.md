@@ -68,10 +68,17 @@ Enter keeps the current one), writes that exact string into both
 `CFBundleShortVersionString` and `CFBundleVersion` in `project.yml` (the
 actual source of truth — editing `Info.plist` directly gets silently
 discarded by the next `xcodegen generate`), then runs: `swift test` →
-`xcodegen generate` → ad-hoc-signed Release build → DMG → Sparkle-sign
-(under the `dkb-downloader` account). Output lands in
-`release-output/<version>/` (gitignored): the `.dmg` and its `.sig` (the
-raw EdDSA signature, ready to paste as-is).
+`xcodegen generate` → ad-hoc-signed Release build (in a temporary
+DerivedData, removed afterwards) → verify (signature, universal
+arm64+x86_64) → DMG → Sparkle-sign (under the `dkb-downloader` account).
+Output lands in `release-output/<version>/` (gitignored): the `.dmg` and
+its `.sig` (the raw EdDSA signature, ready to paste as-is), plus the DMG's
+SHA-256 printed for comparing after upload.
+
+The version must be `MAJOR.MINOR.PATCH` and not lower than the current one
+(Sparkle would never offer a lower one). If anything fails after the
+version was written, `project.yml` is restored, so a failed run never
+leaves a version behind that was never released.
 
 Both version fields are always set identically — an earlier version of
 this script split the input into a 2-component marketing version plus a
