@@ -1118,6 +1118,91 @@
         }
       }
     },
+    "outputDir.accessDenied": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS is blocking DKB Downloader from saving to {folder}. Downloads will fail at the end until you allow it under System Settings › Privacy & Security › Files and Folders, or choose another folder."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS đang chặn DKB Downloader ghi vào {folder}. Tải xong sẽ báo lỗi cho tới khi bạn cấp quyền trong System Settings › Privacy & Security › Files and Folders, hoặc chọn thư mục khác."
+          }
+        }
+      }
+    },
+    "outputDir.volumeMissing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The drive holding the download folder {folder} isn't connected. Reconnect it or choose another folder."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ổ đĩa chứa thư mục tải {folder} chưa được kết nối. Hãy cắm lại hoặc chọn thư mục khác."
+          }
+        }
+      }
+    },
+    "outputDir.unreachable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The download folder {folder} can't be used right now: {reason} Reconnect the drive or choose another folder."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không dùng được thư mục tải {folder} lúc này: {reason} Hãy cắm lại ổ đĩa hoặc chọn thư mục khác."
+          }
+        }
+      }
+    },
+    "outputDir.openSystemSettings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mở System Settings"
+          }
+        }
+      }
+    },
+    "outputDir.chooseFolder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Another Folder…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chọn thư mục khác…"
+          }
+        }
+      }
+    },
     "settings.outputFormat": {
       "extractionState": "manual",
       "localizations": {

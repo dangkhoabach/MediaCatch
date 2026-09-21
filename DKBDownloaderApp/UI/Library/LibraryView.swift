@@ -147,8 +147,10 @@ struct LibraryView: View {
                     // Core writes a language-neutral marker for the
                     // "interrupted by a crash/quit" case; everything else is
                     // yt-dlp's own stderr, which has no translation to give.
-                    Text(message == DownloadRepository.interruptedErrorMessage ? t("library.status.interruptedHint") : message)
-                        .font(.caption).foregroundStyle(.red).lineLimit(1)
+                    let shown = message == DownloadRepository.interruptedErrorMessage ? t("library.status.interruptedHint") : message
+                    // One line keeps the row compact; the full reason (a
+                    // filesystem error can run long) is a hover away.
+                    Text(shown).font(.caption).foregroundStyle(.red).lineLimit(1).help(shown)
                 }
             }
             Spacer()

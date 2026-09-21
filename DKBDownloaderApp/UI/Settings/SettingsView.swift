@@ -34,8 +34,11 @@ struct SettingsView: View {
             Section(t("settings.section.output")) {
                 HStack {
                     TextField(t("settings.outputDir"), text: $outputDir).disabled(true)
-                    Button(t("settings.browse")) { browseOutputDir() }
+                    Button(t("settings.browse")) {
+                        if let picked = OutputDirWarningView.pickOutputDir(current: outputDir) { outputDir = picked }
+                    }
                 }
+                OutputDirWarningView()
                 Picker(t("settings.outputFormat"), selection: $outputFormat) {
                     Text("MP4").tag("mp4")
                     Text("MKV").tag("mkv")
@@ -220,15 +223,5 @@ struct SettingsView: View {
         }
         guard panel.runModal() == .OK, let url = panel.url else { return }
         cookiesFile = url.path
-    }
-
-    private func browseOutputDir() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.allowsMultipleSelection = false
-        if !outputDir.isEmpty { panel.directoryURL = URL(fileURLWithPath: outputDir) }
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        outputDir = url.path
     }
 }

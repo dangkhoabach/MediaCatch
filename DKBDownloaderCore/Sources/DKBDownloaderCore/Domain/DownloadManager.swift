@@ -250,10 +250,27 @@ public actor DownloadManager {
             return
         }
 
-        guard exitCode == 0, let finalPath, let movedPath = Self.moveToOutputDir(tempPath: finalPath, outputDir: outputDir) else {
-            let message = errorMessage ?? "Couldn't move the finished file to the output folder"
+        guard exitCode == 0, let finalPath else {
+            let message = errorMessage ?? "yt-dlp exited with code \(exitCode) without reporting an output file"
             try? downloadRepo.setStatus(id: downloadId, status: .error, errorMessage: message)
             try? FileManager.default.removeItem(at: tempDir)
+            eventsContinuation.yield(.failed(downloadId: downloadId, message: message))
+            return
+        }
+
+        // A move failure used to be reported as a bare "Couldn't move the
+        // finished file" with the actual reason thrown away, which made user
+        // reports impossible to act on — the two causes seen so far are the
+        // output folder no longer existing (external drive unplugged, folder
+        // renamed) and macOS denying the app access to ~/Downloads. The
+        // finished file is deliberately left in the temp dir here: it took
+        // real time to download, and the OS clears that directory on its own.
+        let movedPath: String
+        do {
+            movedPath = try Self.moveToOutputDir(tempPath: finalPath, outputDir: outputDir)
+        } catch {
+            let message = "Couldn't move the finished file to \(outputDir): \(error.localizedDescription)"
+            try? downloadRepo.setStatus(id: downloadId, status: .error, errorMessage: message)
             eventsContinuation.yield(.failed(downloadId: downloadId, message: message))
             return
         }
@@ -305,22 +322,26 @@ public actor DownloadManager {
 
     /// Moves the finished file out of its temp working directory into the
     /// user's chosen output folder. Falls back to copy+delete when the
-    /// rename fails across filesystem boundaries.
-    static func moveToOutputDir(tempPath: String, outputDir: String) -> String? {
+    /// rename fails across filesystem boundaries. Throws the copy's error
+    /// (the more informative of the two) so the caller can show why.
+    static func moveToOutputDir(tempPath: String, outputDir: String) throws -> String {
         let tempURL = URL(fileURLWithPath: tempPath)
+        // The folder is only ever checked when the user picks it; by the time
+        // a download finishes it may have been renamed or deleted, and a
+        // missing folder is not a reason to lose the file. A folder on an
+        // unplugged volume can't be created either, and then the move below
+        // reports that properly.
+        try? FileManager.default.createDirectory(
+            at: URL(fileURLWithPath: outputDir), withIntermediateDirectories: true
+        )
         let destURL = uniqueDestination(filename: tempURL.lastPathComponent, outputDir: outputDir)
         do {
             try FileManager.default.moveItem(at: tempURL, to: destURL)
-            return destURL.path
         } catch {
-            do {
-                try FileManager.default.copyItem(at: tempURL, to: destURL)
-                try? FileManager.default.removeItem(at: tempURL)
-                return destURL.path
-            } catch {
-                return nil
-            }
+            try FileManager.default.copyItem(at: tempURL, to: destURL)
+            try? FileManager.default.removeItem(at: tempURL)
         }
+        return destURL.path
     }
 
     /// Moves whatever is still sitting in the temp directory after the main
@@ -336,7 +357,7 @@ public actor DownloadManager {
         return contents
             .filter { (try? $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
-            .compactMap { moveToOutputDir(tempPath: $0.path, outputDir: outputDir) }
+            .compactMap { try? moveToOutputDir(tempPath: $0.path, outputDir: outputDir) }
     }
 
     /// Builds the exact yt-dlp argument list for one download — pure and

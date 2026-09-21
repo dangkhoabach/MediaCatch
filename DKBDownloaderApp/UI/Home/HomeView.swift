@@ -29,6 +29,10 @@ struct HomeView: View {
                         .font(.callout)
                 }
 
+                // Before the URL field on purpose: a folder macOS won't let
+                // the app write to fails every download at the very end.
+                OutputDirWarningView()
+
                 if viewModel.batchMode {
                     batchSection
                 } else {
