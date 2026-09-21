@@ -1,4 +1,4 @@
-# Xcode / Swift Package Manager
+# Xcode / Swift Package Manager — only project.pbxproj is tracked
 build/
 .build/
 DerivedData/
@@ -6,9 +6,6 @@ DerivedData/
 !*.xcodeproj/project.pbxproj
 *.xcuserstate
 xcuserdata/
-
-# xcodegen-generated project is reproducible from project.yml — not tracked
-DKBDownloaderNative.xcodeproj/
 
 # yt-dlp/ffmpeg sidecar seed binaries — fetched via scripts/fetch-sidecars.sh,
 # not committed since they're large and change with every release.

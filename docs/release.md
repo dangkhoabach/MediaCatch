@@ -27,7 +27,7 @@ Developer ID identity + `xcrun notarytool` step added back in.
 
 1. **Sparkle EdDSA keypair** — already generated, under the `dkb-downloader`
    Keychain account (kept distinct from DKB Monitor's, which uses the
-   default account); `SUPublicEDKey` in `project.yml` is already the real
+   default account); `SUPublicEDKey` in `DKBDownloaderApp/Info.plist` is already the real
    public key. Nothing to do here unless that key is ever rotated - if it
    ever needs regenerating, the exact command is:
    ```bash
@@ -50,7 +50,7 @@ Developer ID identity + `xcrun notarytool` step added back in.
    "Applications" were essentially unreadable against it. Back to Finder's
    plain default background, where the labels are legible.
 
-`project.yml` deliberately does not set `SUEnableAutomaticChecks` (same as
+`Info.plist` deliberately does not set `SUEnableAutomaticChecks` (same as
 DKB Monitor): leaving it out lets Sparkle show its own first-launch "check
 automatically?" prompt and store the answer, which Settings › Updates then
 reads and writes. Hardcoding it to `true` would skip that prompt and phone
@@ -65,10 +65,9 @@ launch so the scheduled check actually starts — the controller is lazy.
 
 Fetches sidecar binaries if missing. Prompts for the version (e.g. `2.0.1`;
 Enter keeps the current one), writes that exact string into both
-`CFBundleShortVersionString` and `CFBundleVersion` in `project.yml` (the
-actual source of truth — editing `Info.plist` directly gets silently
-discarded by the next `xcodegen generate`), then runs: `swift test` →
-`xcodegen generate` → ad-hoc-signed Release build (in a temporary
+`CFBundleShortVersionString` and `CFBundleVersion` in
+`DKBDownloaderApp/Info.plist`, then runs: `swift test` →
+ad-hoc-signed Release build (in a temporary
 DerivedData, removed afterwards) → verify (signature, universal
 arm64+x86_64) → DMG → Sparkle-sign (under the `dkb-downloader` account).
 Output lands in `release-output/<version>/` (gitignored): the `.dmg` and
@@ -77,7 +76,7 @@ SHA-256 printed for comparing after upload.
 
 The version must be `MAJOR.MINOR.PATCH` and not lower than the current one
 (Sparkle would never offer a lower one). If anything fails after the
-version was written, `project.yml` is restored, so a failed run never
+version was written, `Info.plist` is restored, so a failed run never
 leaves a version behind that was never released.
 
 Both version fields are always set identically — an earlier version of
@@ -87,6 +86,28 @@ second release sharing the same `MAJOR.MINOR` reused the exact same
 `CFBundleVersion` as the first, so Sparkle could never tell the two apart
 and kept reporting an update as available even once the user was already
 on the latest DMG.
+
+## Build settings worth knowing
+
+Set on the project/target in `DKBDownloaderNative.xcodeproj` (open it in Xcode to change):
+
+- **Sparkle is pinned to an exact version** (`2.9.6`, not a `from:` range) in the package
+  reference. `release.sh` runs `swift test` inside `DKBDownloaderCore` before building, which
+  rewrites `DKBDownloaderCore/Package.resolved` with only the Core package's own pins; the
+  app build then re-resolves Sparkle against the project's requirement, so a range would
+  quietly ship whatever 2.x was newest that day — an unreviewed update to the one component
+  that installs code on users' machines. Bump it deliberately. (`SPARKLE_VERSION` in
+  `release.sh` is the separate CLI-tools download used for signing; the two don't have to
+  match — the EdDSA format is stable across 2.x.)
+- `ENABLE_HARDENED_RUNTIME = NO` for local/ad-hoc builds: ad-hoc signing has no Team ID, and
+  Hardened Runtime's Library Validation rejects loading any embedded framework
+  (Sparkle.framework) whose Team ID doesn't match the host's — which ad-hoc-signed frameworks
+  never satisfy. Confirmed 2026-09-02: enabling it aborted every launch with a DYLD "Library
+  not loaded: Sparkle… different Team IDs" before any app code ran. Flip it only once builds
+  are signed with a real Developer ID.
+- `SUPublicEDKey` in `Info.plist` is the public half of the EdDSA keypair generated once with
+  `generate_keys --account dkb-downloader` (see One-time setup); there is no CI secret for
+  the private key, releases are signed locally.
 
 ## Uploading a release
 
@@ -102,12 +123,13 @@ releases), ticking macOS and uploading:
 Leave "Updater bundle"/"Signature (.sig)" (the Tauri-format fields) empty —
 this app never shipped a Tauri auto-updater. The admin panel writes
 `updates.dangkhoabach.vn/dkb-downloader/appcast.xml` from the Sparkle
-fields, which `SUFeedURL` in `project.yml` points at.
+fields, which `SUFeedURL` in `Info.plist` points at.
 
 ## Sidecar binaries (yt-dlp, ffmpeg)
 
 Same seed binaries as the old Tauri build (D12 — bundled as-is, not
-rebuilt): `project.yml`'s `postbuildScripts` copies
+rebuilt): the "Bundle yt-dlp/ffmpeg sidecar binaries" build phase on the
+app target copies
 `vendor/binaries/yt-dlp-aarch64-apple-darwin` and
 `ffmpeg-x86_64-apple-darwin` into `Contents/Resources/bin/` at build time.
 `scripts/release.sh` runs `scripts/fetch-sidecars.sh` automatically if

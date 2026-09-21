@@ -16,11 +16,15 @@ a channel.
   `THIRD-PARTY-NOTICES.md`).
 - Sparkle for auto-updates, notarized + Developer ID signed for
   self-distribution outside the Mac App Store.
+- **`DKBDownloaderNative.xcodeproj`** — committed as-is (only
+  `project.pbxproj` is tracked); targets, build phases and `Info.plist` are
+  edited in Xcode.
 
 ## Project structure
 
 ```
-DKBDownloaderApp/     App target: SwiftUI views, App/AppKit glue
+DKBDownloaderNative.xcodeproj/  Xcode project (targets, Sparkle pin, sidecar bundling phase)
+DKBDownloaderApp/     App target: SwiftUI views, App/AppKit glue; Info.plist holds the version + Sparkle keys
 DKBDownloaderCore/    Swift Package: models, DB, download engine, tests
 scripts/              fetch-sidecars.sh (downloads yt-dlp/ffmpeg seed binaries), release.sh (local build/sign/notarize),
                       ui-click.swift (real mouse clicks for verifying the UI from a script; see its header)
@@ -32,7 +36,6 @@ docs/                 Design/porting notes, release process
 
 ```bash
 ./scripts/fetch-sidecars.sh   # first time only, or to refresh yt-dlp/ffmpeg
-xcodegen generate
 xcodebuild -project DKBDownloaderNative.xcodeproj -scheme DKBDownloaderApp -configuration Debug build
 ```
 
