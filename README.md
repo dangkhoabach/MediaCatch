@@ -14,8 +14,9 @@ a channel.
   watch-folder scheduling.
 - Bundles `yt-dlp` and `ffmpeg` as sidecar binaries (see
   `THIRD-PARTY-NOTICES.md`).
-- Sparkle for auto-updates, notarized + Developer ID signed for
-  self-distribution outside the Mac App Store.
+- Sparkle for auto-updates (EdDSA-signed), self-distributed outside the Mac App
+  Store. Builds are ad-hoc signed and not notarized until there is an Apple
+  Developer ID (see `docs/release.md`).
 - **`DKBDownloaderNative.xcodeproj`** — committed as-is (only
   `project.pbxproj` is tracked); targets, build phases and `Info.plist` are
   edited in Xcode.
@@ -26,7 +27,7 @@ a channel.
 DKBDownloaderNative.xcodeproj/  Xcode project (targets, Sparkle pin, sidecar bundling phase)
 DKBDownloaderApp/     App target: SwiftUI views, App/AppKit glue; Info.plist holds the version + Sparkle keys
 DKBDownloaderCore/    Swift Package: models, DB, download engine, tests
-scripts/              fetch-sidecars.sh (downloads yt-dlp/ffmpeg seed binaries), release.sh (local build/sign/notarize),
+scripts/              fetch-sidecars.sh (downloads yt-dlp/ffmpeg seed binaries), release.sh (local build, ad-hoc sign, Sparkle signature),
                       ui-click.swift (real mouse clicks for verifying the UI from a script; see its header)
 vendor/binaries/      Sidecar binary seed (gitignored, fetched locally)
 docs/                 Design/porting notes, release process
@@ -39,4 +40,4 @@ docs/                 Design/porting notes, release process
 xcodebuild -project DKBDownloaderNative.xcodeproj -scheme DKBDownloaderApp -configuration Debug build
 ```
 
-See `docs/release.md` for the release/signing/notarization process.
+See `docs/release.md` for the release and signing process.
