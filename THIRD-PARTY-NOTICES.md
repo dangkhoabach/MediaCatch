@@ -29,7 +29,7 @@ evermeet.cx documents the exact build configuration used for each release at
 https://evermeet.cx/ffmpeg/ — this notice serves as the required offer of
 source access for the exact ffmpeg binary bundled with this app.
 
-**If DKB Downloader is ever distributed as closed-source or under a
+**If MediaCatch is ever distributed as closed-source or under a
 non-GPL-compatible license, this ffmpeg dependency needs to either be
 swapped for an LGPL-only build (drop `--enable-gpl`/`--enable-version3`
 components like libx264) or be re-evaluated with legal advice before

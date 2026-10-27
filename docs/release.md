@@ -1,7 +1,6 @@
-# Releasing DKB Downloader (native, macOS)
+# Releasing MediaCatch (native, macOS)
 
-This is the release process for the Swift app — see
-`swift-native-port-plan.md` for the full port plan. Cutover is complete:
+This is the release process for the Swift app. Cutover is complete:
 the old Tauri tree (`src/`, `src-tauri/`, `release/README.md`'s
 admin-panel/per-machine/Windows process) has been removed, and the Swift
 project itself was later flattened out of a `native/` wrapper folder to the
@@ -17,9 +16,10 @@ changed (`xcodebuild`/`codesign`/Sparkle instead of `cargo tauri build`/
 No Apple Developer Program membership (the $99/year one) exists for this
 project, same as the old Tauri build — so there's no Developer ID signing
 and no notarization here. Builds are **ad-hoc signed** instead (free,
-built into Xcode/`codesign`), which means end users have to right-click →
-Open on first launch to get past Gatekeeper's "unidentified developer"
-warning — the same experience the Tauri build already had. If a paid
+built into Xcode/`codesign`), which means end users have to allow the first launch in System
+Settings → Privacy & Security → Open Anyway (on macOS 15 and later
+right-click → Open no longer gets past Gatekeeper's "unidentified
+developer" warning). If a paid
 membership is ever added later, `scripts/release.sh` would need a real
 Developer ID identity + `xcrun notarytool` step added back in.
 
@@ -27,7 +27,7 @@ Developer ID identity + `xcrun notarytool` step added back in.
 
 1. **Sparkle EdDSA keypair** — already generated, under the `dkb-downloader`
    Keychain account (kept distinct from DKB Monitor's, which uses the
-   default account); `SUPublicEDKey` in `DKBDownloaderApp/Info.plist` is already the real
+   default account); `SUPublicEDKey` in `MediaCatchApp/Info.plist` is already the real
    public key. Nothing to do here unless that key is ever rotated - if it
    ever needs regenerating, the exact command is:
    ```bash
@@ -46,7 +46,7 @@ Developer ID identity + `xcrun notarytool` step added back in.
    ```
    No custom background image — a dark particle-network image was tried
    (`scripts/generate-dmg-background.py`) but Finder always draws icon name
-   labels in black with no way to override that, so "DKB Downloader"/
+   labels in black with no way to override that, so "MediaCatch"/
    "Applications" were essentially unreadable against it. Back to Finder's
    plain default background, where the labels are legible.
 
@@ -66,7 +66,7 @@ launch so the scheduled check actually starts — the controller is lazy.
 Fetches sidecar binaries if missing. Prompts for the version (e.g. `2.0.1`;
 Enter keeps the current one), writes that exact string into both
 `CFBundleShortVersionString` and `CFBundleVersion` in
-`DKBDownloaderApp/Info.plist`, then runs: `swift test` →
+`MediaCatchApp/Info.plist`, then runs: `swift test` →
 ad-hoc-signed Release build (in a temporary
 DerivedData, removed afterwards) → verify (signature, universal
 arm64+x86_64) → DMG → Sparkle-sign (under the `dkb-downloader` account).
@@ -89,11 +89,11 @@ on the latest DMG.
 
 ## Build settings worth knowing
 
-Set on the project/target in `DKBDownloaderNative.xcodeproj` (open it in Xcode to change):
+Set on the project/target in `MediaCatch.xcodeproj` (open it in Xcode to change):
 
 - **Sparkle is pinned to an exact version** (`2.9.6`, not a `from:` range) in the package
-  reference. `release.sh` runs `swift test` inside `DKBDownloaderCore` before building, which
-  rewrites `DKBDownloaderCore/Package.resolved` with only the Core package's own pins; the
+  reference. `release.sh` runs `swift test` inside `MediaCatchCore` before building, which
+  rewrites `MediaCatchCore/Package.resolved` with only the Core package's own pins; the
   app build then re-resolves Sparkle against the project's requirement, so a range would
   quietly ship whatever 2.x was newest that day — an unreviewed update to the one component
   that installs code on users' machines. Bump it deliberately. (`SPARKLE_VERSION` in
@@ -117,8 +117,8 @@ releases), ticking macOS and uploading:
 
 | Form field | File |
 |---|---|
-| Installer file | `DKB-Downloader-<version>.dmg` |
-| Sparkle signature (.sig) | `DKB-Downloader-<version>.dmg.sig` (paste its contents) |
+| Installer file | `MediaCatch-<version>.dmg` |
+| Sparkle signature (.sig) | `MediaCatch-<version>.dmg.sig` (paste its contents) |
 
 Leave "Updater bundle"/"Signature (.sig)" (the Tauri-format fields) empty —
 this app never shipped a Tauri auto-updater. The admin panel writes
@@ -127,7 +127,7 @@ fields, which `SUFeedURL` in `Info.plist` points at.
 
 ## Sidecar binaries (yt-dlp, ffmpeg)
 
-Same seed binaries as the old Tauri build (D12 — bundled as-is, not
+Same seed binaries as the old Tauri build (bundled as-is, not
 rebuilt): the "Bundle yt-dlp/ffmpeg sidecar binaries" build phase on the
 app target copies
 `vendor/binaries/yt-dlp-aarch64-apple-darwin` and

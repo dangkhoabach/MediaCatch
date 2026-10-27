@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Builds, ad-hoc signs, DMGs, and Sparkle-signs DKB Downloader entirely on
+# Builds, ad-hoc signs, DMGs, and Sparkle-signs MediaCatch entirely on
 # this machine — no CI, no GitHub Actions secrets. Same manual-release model
 # the old Tauri app used (see docs/release.md): no Apple Developer Program
 # membership, so no Developer ID signing and no notarization — same
-# ad-hoc-signed, "right-click > Open on first launch" distribution the
-# Tauri build already shipped.
+# ad-hoc-signed, "Open Anyway on first launch" distribution the Tauri
+# build already shipped.
 #
 # One-time setup (see docs/release.md):
 #   - A Sparkle EdDSA keypair generated under the `dkb-downloader` Keychain
@@ -16,10 +16,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-SCHEME="DKBDownloaderApp"
-PROJECT="DKBDownloaderNative.xcodeproj"
-APP_NAME="DKB Downloader"
-INFO_PLIST="DKBDownloaderApp/Info.plist"
+SCHEME="MediaCatchApp"
+PROJECT="MediaCatch.xcodeproj"
+APP_NAME="MediaCatch"
+INFO_PLIST="MediaCatchApp/Info.plist"
 SPARKLE_ACCOUNT="dkb-downloader"
 SPARKLE_VERSION="2.6.4"
 # SHA-256 of Sparkle-2.6.4.tar.xz. Pinned so the tools this script signs
@@ -53,8 +53,8 @@ if [ "$FFMPEG_BINARY_SHA256" != "$ACTUAL_FFMPEG_BINARY_SHA" ]; then
   exit 1
 fi
 
-echo "==> Testing DKBDownloaderCore"
-(cd DKBDownloaderCore && swift test)
+echo "==> Testing MediaCatchCore"
+(cd MediaCatchCore && swift test)
 
 # Info.plist is the source of truth for the version.
 #
@@ -157,7 +157,7 @@ done
 echo "    architectures: $ARCHS_BUILT"
 
 echo "==> Creating DMG"
-DMG_PATH="$OUT_DIR/DKB-Downloader-$VERSION.dmg"
+DMG_PATH="$OUT_DIR/MediaCatch-$VERSION.dmg"
 rm -f "$DMG_PATH"
 create-dmg \
   --volname "$APP_NAME" \
@@ -211,5 +211,5 @@ echo "    Sparkle signature:  $DMG_PATH.sig"
 echo "    Installer SHA-256: $DMG_SHA256"
 echo ""
 echo "Reminder: this build is ad-hoc signed, not notarized (no paid Apple"
-echo "Developer Program membership) - first launch needs right-click > Open"
-echo "to bypass Gatekeeper, same as the old Tauri build."
+echo "Developer Program membership) - first launch needs System Settings >"
+echo "Privacy & Security > Open Anyway to get past Gatekeeper."

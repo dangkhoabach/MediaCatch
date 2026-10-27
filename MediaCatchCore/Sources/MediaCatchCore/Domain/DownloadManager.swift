@@ -1,0 +1,459 @@
+import Foundation
+
+public struct StartDownloadRequest: Sendable {
+    public var url: String
+    public var title: String
+    public var formatSelector: String
+    public var outputDir: String
+    public var outputFormat: String
+    public var embedMetadata: Bool
+    public var audioOnly: Bool
+    public var cookiesBrowser: String?
+    /// Path to a Netscape-format cookies.txt. Takes precedence over
+    /// `cookiesBrowser` — reading a browser's own store and reading an
+    /// exported file are two ways of doing the same thing, and passing both
+    /// to yt-dlp is an error.
+    public var cookiesFile: String?
+    public var useAria2c: Bool
+    /// A yt-dlp rate string such as "5M"; `nil` means no cap.
+    public var rateLimit: String?
+    /// Comma-separated languages for `--sub-langs`. Only consulted when
+    /// `embedMetadata` is on, which is what pulls subtitles in at all.
+    public var subtitleLanguages: String
+    /// Writes one extra file per chapter alongside the full video.
+    public var splitChapters: Bool
+
+    public init(
+        url: String, title: String, formatSelector: String, outputDir: String, outputFormat: String,
+        embedMetadata: Bool = false, audioOnly: Bool = false, cookiesBrowser: String? = nil, useAria2c: Bool = false,
+        rateLimit: String? = nil, subtitleLanguages: String = "en,vi",
+        cookiesFile: String? = nil, splitChapters: Bool = false
+    ) {
+        self.url = url
+        self.title = title
+        self.formatSelector = formatSelector
+        self.outputDir = outputDir
+        self.outputFormat = outputFormat
+        self.embedMetadata = embedMetadata
+        self.audioOnly = audioOnly
+        self.cookiesBrowser = cookiesBrowser
+        self.useAria2c = useAria2c
+        self.rateLimit = rateLimit
+        self.subtitleLanguages = subtitleLanguages
+        self.cookiesFile = cookiesFile
+        self.splitChapters = splitChapters
+    }
+}
+
+public enum DownloadEvent: Sendable, Equatable {
+    case progress(downloadId: Int64, progress: DownloadProgress)
+    case completed(downloadId: Int64, outputPath: String)
+    case failed(downloadId: Int64, message: String)
+    case canceled(downloadId: Int64)
+}
+
+/// Orchestrates yt-dlp downloads: builds the argument list for every option
+/// combination, tracks one running `ProcessRunner` per download for pause/
+/// resume/cancel, and moves the finished file out of a private temp
+/// directory into the user's chosen output folder. Mirrors
+/// `ytdlp.rs::start_download`/`cancel_download`/`pause_download`/
+/// `resume_download`.
+///
+/// An `actor` (not App-layer-only):
+/// nothing here needs AppKit — `Process`/`FileManager` are plain Foundation
+/// — so it lives in Core, fully testable without a UI, with the real
+/// sidecar binary paths injected by the caller (App layer resolves those
+/// from the bundle, same division of responsibility as `ProcessRunner`'s
+/// tests already use).
+public actor DownloadManager {
+    private let ytdlpURL: URL
+    private let ffmpegURL: URL?
+    private let downloadRepo: DownloadRepository
+    private var runners: [Int64: ProcessRunner] = [:]
+    private var canceledIds: Set<Int64> = []
+
+    /// Queueing exists because `start` spawns a process and returns
+    /// immediately: submitting a 30-link batch used to put 30 yt-dlp
+    /// processes (and their aria2c children) on the network at once, splitting
+    /// the bandwidth every which way and inviting rate-limiting.
+    private var maxConcurrent: Int
+    private var pending: [(downloadId: Int64, request: StartDownloadRequest)] = []
+
+    public nonisolated let events: AsyncStream<DownloadEvent>
+    private let eventsContinuation: AsyncStream<DownloadEvent>.Continuation
+
+    public init(ytdlpURL: URL, ffmpegURL: URL?, downloadRepo: DownloadRepository, maxConcurrent: Int = 3) {
+        self.ytdlpURL = ytdlpURL
+        self.ffmpegURL = ffmpegURL
+        self.downloadRepo = downloadRepo
+        self.maxConcurrent = max(1, maxConcurrent)
+        var continuation: AsyncStream<DownloadEvent>.Continuation!
+        self.events = AsyncStream { continuation = $0 }
+        self.eventsContinuation = continuation
+        try? downloadRepo.reconcileInterrupted()
+    }
+
+    /// Raising the limit immediately admits whatever is already waiting;
+    /// lowering it only applies to downloads that haven't started yet, since
+    /// killing something already in progress to honour a settings change
+    /// would throw away the bytes it has fetched.
+    public func setMaxConcurrent(_ value: Int) {
+        maxConcurrent = max(1, value)
+        startNextPending()
+    }
+
+    /// Starts the download if there's a free slot, otherwise records it as
+    /// `.queued` and returns — the id is valid either way, and the row shows
+    /// up in Queue as waiting until a slot frees up.
+    @discardableResult
+    public func start(_ request: StartDownloadRequest) throws -> Int64 {
+        let downloadId = try downloadRepo.insert(
+            url: request.url, title: request.title, formatSelector: request.formatSelector, outputDir: request.outputDir
+        )
+
+        guard runners.count < maxConcurrent else {
+            pending.append((downloadId: downloadId, request: request))
+            try? downloadRepo.setStatus(id: downloadId, status: .queued)
+            return downloadId
+        }
+
+        // The row was inserted as `.downloading` above; if the process can't
+        // even be spawned it must not stay that way, or it sits in Queue with
+        // Cancel/Pause as no-ops until the next launch's reconcile marks it
+        // "interrupted" — which it wasn't. `startNextPending` already handles
+        // the same failure for queued rows; this is the direct-launch path.
+        do {
+            try launch(downloadId: downloadId, request: request)
+        } catch {
+            try? downloadRepo.setStatus(id: downloadId, status: .error, errorMessage: "\(error)")
+            try? FileManager.default.removeItem(at: Self.tempDownloadDir(downloadId: downloadId))
+            throw error
+        }
+        return downloadId
+    }
+
+    private func launch(downloadId: Int64, request: StartDownloadRequest) throws {
+        let tempDir = Self.tempDownloadDir(downloadId: downloadId)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let args = Self.buildArguments(request: request, tempDir: tempDir, ffmpegURL: ffmpegURL)
+
+        let runner = try ProcessRunner(executableURL: ytdlpURL, arguments: args)
+        runners[downloadId] = runner
+
+        Task {
+            await self.observe(
+                runner: runner, downloadId: downloadId,
+                outputDir: request.outputDir, splitChapters: request.splitChapters
+            )
+        }
+    }
+
+    /// Admits waiting downloads until the limit is reached. A launch failure
+    /// (e.g. the temp directory can't be created) marks that one as failed and
+    /// moves on rather than stalling the whole queue behind it.
+    private func startNextPending() {
+        while runners.count < maxConcurrent, !pending.isEmpty {
+            let next = pending.removeFirst()
+            do {
+                try launch(downloadId: next.downloadId, request: next.request)
+                try? downloadRepo.setStatus(id: next.downloadId, status: .downloading)
+            } catch {
+                try? downloadRepo.setStatus(id: next.downloadId, status: .error, errorMessage: "\(error)")
+                eventsContinuation.yield(.failed(downloadId: next.downloadId, message: "\(error)"))
+            }
+        }
+    }
+
+    public func cancel(downloadId: Int64) {
+        // A download still waiting its turn has no process to kill — drop it
+        // from the queue directly, or it would start later as if it had never
+        // been cancelled.
+        if let index = pending.firstIndex(where: { $0.downloadId == downloadId }) {
+            pending.remove(at: index)
+            try? downloadRepo.setStatus(id: downloadId, status: .canceled)
+            eventsContinuation.yield(.canceled(downloadId: downloadId))
+            return
+        }
+
+        canceledIds.insert(downloadId)
+        runners[downloadId]?.terminate()
+    }
+
+    /// Terminates every in-flight yt-dlp/ffmpeg process without touching DB
+    /// state — called from `applicationWillTerminate` so app quit doesn't
+    /// leave orphaned child processes running in the background.
+    public func terminateAll() {
+        for runner in runners.values {
+            runner.terminate()
+        }
+    }
+
+    /// `SIGSTOP`/`SIGCONT` on the running process.
+    @discardableResult
+    public func pause(downloadId: Int64) -> Bool {
+        runners[downloadId]?.suspend() ?? false
+    }
+
+    @discardableResult
+    public func resume(downloadId: Int64) -> Bool {
+        runners[downloadId]?.resume() ?? false
+    }
+
+    private func observe(runner: ProcessRunner, downloadId: Int64, outputDir: String, splitChapters: Bool) async {
+        var finalPath: String?
+        var lastErrorLine: String?
+        var exitCode: Int32 = 0
+
+        for await event in runner.events {
+            switch event {
+            case .stdoutLine(let line):
+                if let progress = parseDownloadProgressLine(line) {
+                    eventsContinuation.yield(.progress(downloadId: downloadId, progress: progress))
+                } else if !line.isEmpty {
+                    // With --quiet --no-warnings, the only other stdout line
+                    // is the --print after_move:filepath output.
+                    finalPath = line
+                }
+            case .stderrLine(let line):
+                if !line.isEmpty { lastErrorLine = line }
+            case .terminated(let code):
+                exitCode = code
+            }
+        }
+
+        finish(
+            downloadId: downloadId, exitCode: exitCode, finalPath: finalPath,
+            errorMessage: lastErrorLine, outputDir: outputDir, splitChapters: splitChapters
+        )
+    }
+
+    /// `cancel_download` already marks the row "canceled" and removed the
+    /// runner synchronously before calling `terminate()` — but the process's
+    /// own `terminated` event still arrives afterwards regardless (killing
+    /// it triggers one too), so this must check `canceledIds` first and
+    /// never let a killed-on-purpose process get treated as an error. Same
+    /// pattern `externalCancelFlagDistinguishesUserCancelFromRealFailure` pins.
+    private func finish(
+        downloadId: Int64, exitCode: Int32, finalPath: String?, errorMessage: String?,
+        outputDir: String, splitChapters: Bool
+    ) {
+        runners[downloadId] = nil
+        // This slot is free now — admit whatever has been waiting for it
+        // before doing the (slower) bookkeeping below.
+        startNextPending()
+        let tempDir = Self.tempDownloadDir(downloadId: downloadId)
+
+        if canceledIds.remove(downloadId) != nil {
+            try? downloadRepo.setStatus(id: downloadId, status: .canceled)
+            try? FileManager.default.removeItem(at: tempDir)
+            eventsContinuation.yield(.canceled(downloadId: downloadId))
+            return
+        }
+
+        guard exitCode == 0, let finalPath else {
+            let message = errorMessage ?? "yt-dlp exited with code \(exitCode) without reporting an output file"
+            try? downloadRepo.setStatus(id: downloadId, status: .error, errorMessage: message)
+            try? FileManager.default.removeItem(at: tempDir)
+            eventsContinuation.yield(.failed(downloadId: downloadId, message: message))
+            return
+        }
+
+        // A move failure used to be reported as a bare "Couldn't move the
+        // finished file" with the actual reason thrown away, which made user
+        // reports impossible to act on — the two causes seen so far are the
+        // output folder no longer existing (external drive unplugged, folder
+        // renamed) and macOS denying the app access to ~/Downloads. The
+        // finished file is deliberately left in the temp dir here: it took
+        // real time to download, and the OS clears that directory on its own.
+        let movedPath: String
+        do {
+            movedPath = try Self.moveToOutputDir(tempPath: finalPath, outputDir: outputDir)
+        } catch {
+            let message = "Couldn't move the finished file to \(outputDir): \(error.localizedDescription)"
+            try? downloadRepo.setStatus(id: downloadId, status: .error, errorMessage: message)
+            eventsContinuation.yield(.failed(downloadId: downloadId, message: message))
+            return
+        }
+
+        // The chapter files are separate outputs that `--print
+        // after_move:filepath` never mentions, so they'd be thrown away with
+        // the temp dir below. The row keeps pointing at the full video, which
+        // is what Open/Reveal should land on.
+        if splitChapters {
+            Self.moveLeftoverFiles(tempDir: tempDir, outputDir: outputDir)
+        }
+
+        try? downloadRepo.setStatus(id: downloadId, status: .completed)
+        try? downloadRepo.setOutputPath(id: downloadId, outputPath: movedPath)
+        try? FileManager.default.removeItem(at: tempDir)
+        eventsContinuation.yield(.completed(downloadId: downloadId, outputPath: movedPath))
+    }
+
+    // MARK: - Pure helpers (unit-tested without spawning any process)
+
+    /// Where a download's working directory lives while yt-dlp downloads and
+    /// post-processes it — kept out of the user's chosen output folder so a
+    /// crash, cancel, or leftover post-processing artifact never lands
+    /// there. Pure function of `downloadId`, matching `ytdlp.rs::temp_download_dir`.
+    static func tempDownloadDir(downloadId: Int64) -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("dkb-downloader", isDirectory: true)
+            .appendingPathComponent(String(downloadId), isDirectory: true)
+    }
+
+    /// Appends " (1)", " (2)", … before the extension until the name is free.
+    /// `moveItem`/`copyItem` both fail outright against an existing
+    /// destination, so without this, re-downloading a video whose file is
+    /// already in the output folder reported an error and deleted the
+    /// finished file along with its temp dir.
+    static func uniqueDestination(filename: String, outputDir: String) -> URL {
+        let directory = URL(fileURLWithPath: outputDir)
+        let base = (filename as NSString).deletingPathExtension
+        let ext = (filename as NSString).pathExtension
+        var candidate = directory.appendingPathComponent(filename)
+        var counter = 1
+        while FileManager.default.fileExists(atPath: candidate.path) {
+            let numbered = ext.isEmpty ? "\(base) (\(counter))" : "\(base) (\(counter)).\(ext)"
+            candidate = directory.appendingPathComponent(numbered)
+            counter += 1
+        }
+        return candidate
+    }
+
+    /// Moves the finished file out of its temp working directory into the
+    /// user's chosen output folder. Falls back to copy+delete when the
+    /// rename fails across filesystem boundaries. Throws the copy's error
+    /// (the more informative of the two) so the caller can show why.
+    static func moveToOutputDir(tempPath: String, outputDir: String) throws -> String {
+        let tempURL = URL(fileURLWithPath: tempPath)
+        // The folder is only ever checked when the user picks it; by the time
+        // a download finishes it may have been renamed or deleted, and a
+        // missing folder is not a reason to lose the file. A folder on an
+        // unplugged volume can't be created either, and then the move below
+        // reports that properly.
+        try? FileManager.default.createDirectory(
+            at: URL(fileURLWithPath: outputDir), withIntermediateDirectories: true
+        )
+        let destURL = uniqueDestination(filename: tempURL.lastPathComponent, outputDir: outputDir)
+        do {
+            try FileManager.default.moveItem(at: tempURL, to: destURL)
+        } catch {
+            try FileManager.default.copyItem(at: tempURL, to: destURL)
+            try? FileManager.default.removeItem(at: tempURL)
+        }
+        return destURL.path
+    }
+
+    /// Moves whatever is still sitting in the temp directory after the main
+    /// file has been taken out — the per-chapter files `--split-chapters`
+    /// writes. Best-effort on purpose: the download itself has already
+    /// succeeded, so a chapter file that can't be moved is worth skipping,
+    /// not worth failing the whole download over.
+    @discardableResult
+    static func moveLeftoverFiles(tempDir: URL, outputDir: String) -> [String] {
+        let contents = (try? FileManager.default.contentsOfDirectory(
+            at: tempDir, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]
+        )) ?? []
+        return contents
+            .filter { (try? $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+            .compactMap { try? moveToOutputDir(tempPath: $0.path, outputDir: outputDir) }
+    }
+
+    /// Builds the exact yt-dlp argument list for one download — pure and
+    /// order-preserving so it can be unit-tested for every option
+    /// combination without spawning anything. Mirrors
+    /// `ytdlp.rs::start_download`'s argument construction flag-for-flag.
+    static func buildArguments(request: StartDownloadRequest, tempDir: URL, ffmpegURL: URL?) -> [String] {
+        var args: [String] = [
+            "-f", request.formatSelector,
+            "--merge-output-format", request.outputFormat,
+            "-o", tempDir.appendingPathComponent("%(title)s.%(ext)s").path,
+            "--quiet",
+            "--no-warnings",
+            // start_download always targets exactly one video — a
+            // `watch?v=X&list=Y` URL would otherwise download the entire
+            // playlist Y. Bulk playlist downloads go through
+            // expandPlaylist + batch mode instead.
+            "--no-playlist",
+            // Forces the progress bar even though stdout is a pipe, not a
+            // tty — yt-dlp otherwise silently skips all progress output,
+            // confirmed empirically.
+            "--progress",
+            "--newline",
+            "--progress-template", "download:DKB|%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s",
+            "--print", "after_move:filepath",
+        ]
+
+        if let ffmpegURL {
+            args.append("--ffmpeg-location")
+            args.append(ffmpegURL.path)
+        }
+
+        if request.embedMetadata {
+            args.append("--embed-thumbnail")
+            args.append("--embed-chapters")
+            args.append("--embed-metadata")
+            // Thumbnail embedding only supports a fixed list of containers
+            // — audio-only formats commonly download as webm/opus, which
+            // isn't on that list. --audio-format best remuxes (no
+            // re-encode) into the correct container for whatever codec was
+            // downloaded, so embedding succeeds.
+            if request.audioOnly {
+                args.append("-x")
+                args.append("--audio-format")
+                args.append("best")
+            }
+            args.append("--sub-langs")
+            args.append(request.subtitleLanguages)
+            args.append("--embed-subs")
+        }
+
+        if let rateLimit = request.rateLimit, !rateLimit.isEmpty {
+            args.append("--limit-rate")
+            args.append(rateLimit)
+        }
+
+        // No `--sponsorblock-remove` here on purpose: it needs ffprobe, which
+        // this app doesn't bundle, so it failed every download it was enabled
+        // for — yt-dlp exits non-zero during post-processing, which marks the
+        // row failed and deletes the temp dir, throwing away a file that had
+        // already downloaded successfully. Bundling ffprobe would fix it at
+        // the cost of ~77 MB (roughly doubling the DMG) for a feature that
+        // only does anything on videos someone has already marked up in the
+        // SponsorBlock database — overwhelmingly long-form English content,
+        // and essentially never music videos.
+        //
+        // Each chapter becomes its own file. The `chapter:` output template
+        // must be set explicitly: yt-dlp's built-in one carries no directory,
+        // and `-o` only sets the `default` key — so without this the chapter
+        // files are written relative to the *process's working directory*
+        // rather than next to the video (verified against 2026.08.19: they
+        // landed in the shell's cwd, which for the app is wherever Finder
+        // launched it from).
+        if request.splitChapters {
+            args.append("--split-chapters")
+            args.append("-o")
+            args.append("chapter:" + tempDir
+                .appendingPathComponent("%(title)s - %(section_number)03d %(section_title)s.%(ext)s").path)
+        }
+
+        YtdlpClient.appendCookiesArg(&args, browser: request.cookiesBrowser, file: request.cookiesFile)
+
+        if request.useAria2c {
+            args.append("--external-downloader")
+            args.append("aria2c")
+            args.append("--external-downloader-args")
+            args.append("aria2c:-x16 -s16 -k1M")
+        }
+
+        // `--` ends option parsing: without it, a "URL" starting with a dash
+        // is parsed as a yt-dlp option instead (confirmed: passing
+        // "--version" here made yt-dlp print its version rather than fail on
+        // an invalid URL). Reachable from Home's drag-and-drop, which fetches
+        // whatever was dropped with no confirmation step.
+        args.append("--")
+        args.append(request.url)
+        return args
+    }
+}

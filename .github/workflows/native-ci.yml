@@ -8,15 +8,15 @@ on:
   push:
     branches: [main]
     paths:
-      - "DKBDownloaderApp/**"
-      - "DKBDownloaderCore/**"
-      - "DKBDownloaderNative.xcodeproj/**"
+      - "MediaCatchApp/**"
+      - "MediaCatchCore/**"
+      - "MediaCatch.xcodeproj/**"
       - ".github/workflows/native-ci.yml"
   pull_request:
     paths:
-      - "DKBDownloaderApp/**"
-      - "DKBDownloaderCore/**"
-      - "DKBDownloaderNative.xcodeproj/**"
+      - "MediaCatchApp/**"
+      - "MediaCatchCore/**"
+      - "MediaCatch.xcodeproj/**"
       - ".github/workflows/native-ci.yml"
 
 jobs:
@@ -37,15 +37,15 @@ jobs:
           sudo xcode-select -s "$LATEST"
           xcodebuild -version
 
-      - name: Test DKBDownloaderCore (headless package)
-        working-directory: DKBDownloaderCore
+      - name: Test MediaCatchCore (headless package)
+        working-directory: MediaCatchCore
         run: swift test
 
       # The sidecar binaries are gitignored (large, self-updating), so a fresh
       # checkout won't have them. The app target's bundling build phase warns and skips
       # rather than failing — this job only needs the app to compile and link,
       # not to run a real download.
-      - name: Build DKBDownloaderApp
+      - name: Build MediaCatchApp
         run: |
-          xcodebuild -project DKBDownloaderNative.xcodeproj -scheme DKBDownloaderApp -configuration Debug build \
+          xcodebuild -project MediaCatch.xcodeproj -scheme MediaCatchApp -configuration Debug build \
             CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
