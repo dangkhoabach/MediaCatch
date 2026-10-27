@@ -66,7 +66,7 @@ struct LibraryView: View {
                 // Without this, macOS 26's Liquid Glass toolbar fuses the
                 // segmented Picker above with the search field/Clear button
                 // below into one shared glass container even though they're
-                // separate `ToolbarItemGroup`s — the same merging DKB Monitor
+                // separate `ToolbarItemGroup`s — the same merging SignalBar
                 // documented and worked around with this exact API.
                 if #available(macOS 26.0, *) {
                     ToolbarSpacer(.fixed, placement: .automatic)

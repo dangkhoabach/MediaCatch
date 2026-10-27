@@ -14,7 +14,7 @@ enum DatabaseRecovery {
 /// view model/manager opening its own separate `AppDatabase(path:)` to the
 /// same file — GRDB's `ValueObservation` only re-fires for writes made
 /// through the *same* `DatabaseQueue` instance it was created from, and
-/// DKB Monitor hit a real bug from skipping this. Established here, the first
+/// SignalBar hit a real bug from skipping this. Established here, the first
 /// point an App-layer type (`MenuBarStatsViewModel`) needs its own DB
 /// access, rather than waiting for the bug to actually appear.
 extension AppDatabase {

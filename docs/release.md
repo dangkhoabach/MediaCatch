@@ -26,7 +26,7 @@ Developer ID identity + `xcrun notarytool` step added back in.
 ## One-time setup
 
 1. **Sparkle EdDSA keypair** — already generated, under the `dkb-downloader`
-   Keychain account (kept distinct from DKB Monitor's, which uses the
+   Keychain account (kept distinct from SignalBar's, which uses the
    default account); `SUPublicEDKey` in `MediaCatchApp/Info.plist` is already the real
    public key. Nothing to do here unless that key is ever rotated - if it
    ever needs regenerating, the exact command is:
@@ -35,7 +35,7 @@ Developer ID identity + `xcrun notarytool` step added back in.
    ```
    The `--account dkb-downloader` flag is **required** — omitting it falls
    back to the Keychain's default `ed25519` account, which is already
-   occupied by DKB Monitor's key (Sparkle's own docs: "you only need one
+   occupied by SignalBar's key (Sparkle's own docs: "you only need one
    signing key, no matter how many apps you embed Sparkle in" — true in
    general, but this repo deliberately keeps a separate key per app for
    isolation).
@@ -51,7 +51,7 @@ Developer ID identity + `xcrun notarytool` step added back in.
    plain default background, where the labels are legible.
 
 `Info.plist` deliberately does not set `SUEnableAutomaticChecks` (same as
-DKB Monitor): leaving it out lets Sparkle show its own first-launch "check
+SignalBar): leaving it out lets Sparkle show its own first-launch "check
 automatically?" prompt and store the answer, which Settings › Updates then
 reads and writes. Hardcoding it to `true` would skip that prompt and phone
 home daily without asking. `AppDelegate` touches `AppUpdater.shared` at

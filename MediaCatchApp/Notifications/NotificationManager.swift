@@ -6,7 +6,7 @@ import UserNotifications
 /// workaround (that existed only to get a click callback out of the legacy
 /// NSUserNotificationCenter backend, and needed a fake bundle-id fallback for
 /// unsigned dev builds; `UNUserNotificationCenter`'s delegate gives a click
-/// callback natively with none of that). Copied from DKB Monitor's
+/// callback natively with none of that). Copied from SignalBar's
 /// already-proven code,
 /// simplified: this app's notifications only ever need a plain click (no
 /// dedicated action button/category — `notification.rs`'s "View" action

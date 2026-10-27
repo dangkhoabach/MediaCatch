@@ -3,7 +3,7 @@ import Foundation
 /// Resolves to the exact same path the Tauri app already writes to —
 /// `~/Library/Application Support/<bundle id>/dkb-downloader.db`:
 /// this is an in-place upgrade that reads the existing database, not a
-/// fresh one under a new identity. Copied from DKB Monitor's already-proven
+/// fresh one under a new identity. Copied from SignalBar's already-proven
 /// code.
 enum AppDatabaseLocation {
     static func productionPath() -> URL {

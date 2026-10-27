@@ -5,8 +5,8 @@ import SwiftUI
 /// it, and switches the Dock icon to Accessory — matches the Tauri version's
 /// `WindowEvent::CloseRequested` handling (`window.hide()` + `prevent_close()`
 /// + `ActivationPolicy::Accessory`) so in-progress downloads keep running in
-/// the background instead of the app quitting. Copied verbatim from DKB
-/// Monitor's already-proven code — same behavior, different app.
+/// the background instead of the app quitting. Copied verbatim from
+/// SignalBar's already-proven code — same behavior, different app.
 final class HideInsteadOfCloseDelegate: NSObject, NSWindowDelegate {
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         // `sender.orderOut(nil)` alone leaves the NSWindow object alive but

@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// A real `NSSearchField`, not a `TextField` dressed up to look like one —
-/// copied from DKB Monitor's already-proven `native/` code. A hand-rolled
+/// copied from SignalBar's already-proven `native/` code. A hand-rolled
 /// `TextField` never quite matches the system search field (bezel, icon
 /// inset, rounding) and only gets a generic Liquid Glass backing behind
 /// arbitrary content on macOS 26+, not the real search-field chrome —

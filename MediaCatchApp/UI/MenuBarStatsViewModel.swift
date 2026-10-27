@@ -6,7 +6,7 @@ import Observation
 /// needing a live reference to whatever `DownloadManager` instance the app's
 /// composition root ends up owning. Updated on a
 /// `Task.sleep`-loop, the same burst-avoiding shape used by
-/// `ChannelWatcher`/DKB Monitor's `MenuBarStatsViewModel`, instead of a fixed
+/// `ChannelWatcher`/SignalBar's `MenuBarStatsViewModel`, instead of a fixed
 /// `Timer`.
 @Observable
 @MainActor

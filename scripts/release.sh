@@ -8,7 +8,7 @@
 #
 # One-time setup (see docs/release.md):
 #   - A Sparkle EdDSA keypair generated under the `dkb-downloader` Keychain
-#     account (kept distinct from DKB Monitor's, which uses the default
+#     account (kept distinct from SignalBar's, which uses the default
 #     account) — see docs/release.md for the exact one-time generate_keys
 #     command.
 #   - `brew install create-dmg` (styles the installer DMG's Finder window -
@@ -192,7 +192,7 @@ fi
 # wrapper) - that raw value is exactly what admin.dangkhoabach.vn's "Sparkle
 # signature" upload field expects. --account must match the account this
 # app's key was generated under (see docs/release.md) - omitting it would
-# silently sign with DKB Monitor's default-account key instead, producing a
+# silently sign with SignalBar's default-account key instead, producing a
 # signature the app's embedded SUPublicEDKey can never verify.
 "$SPARKLE_TOOLS_DIR/bin/sign_update" -p --account "$SPARKLE_ACCOUNT" "$DMG_PATH" | tee "$DMG_PATH.sig"
 [ -s "$DMG_PATH.sig" ] || { echo "Error: sign_update produced an empty signature." >&2; exit 1; }

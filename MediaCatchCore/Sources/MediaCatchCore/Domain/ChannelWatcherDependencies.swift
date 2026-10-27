@@ -1,8 +1,8 @@
 import Foundation
 
 /// Abstracts the 2 pieces of `ChannelWatcher` that need real I/O (a real
-/// yt-dlp process, a real download) — mirrors the same reasoning as DKB
-/// Monitor's `SchedulerDependencies.swift`: it lets the watch-polling logic
+/// yt-dlp process, a real download) — mirrors the same reasoning as
+/// SignalBar's `SchedulerDependencies.swift`: it lets the watch-polling logic
 /// itself (skip known videos, mark new ones, touch last-checked) be tested
 /// headlessly with fakes, without spawning any process.
 public protocol PlaylistDumping: Sendable {

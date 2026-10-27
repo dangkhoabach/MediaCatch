@@ -3,7 +3,7 @@ import Sparkle
 /// Thin wrapper around Sparkle's `SPUStandardUpdaterController` — reads
 /// `SUFeedURL`/`SUPublicEDKey` straight from Info.plist, so no
 /// manual delegate wiring is needed for the baseline "check on launch +
-/// Check for Updates… menu item" behavior. Copied from DKB Monitor's
+/// Check for Updates… menu item" behavior. Copied from SignalBar's
 /// already-proven code.
 ///
 /// Whether it checks on its own is the user's answer, not a build setting:

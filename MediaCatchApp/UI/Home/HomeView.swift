@@ -47,7 +47,7 @@ struct HomeView: View {
         }
         .frame(minWidth: 480, minHeight: 360)
         // A plain, unstyled `Button` — not a `Toggle`, even a `.button`-styled
-        // one — matching DKB Monitor's proven lesson: anything but a bare
+        // one — matching SignalBar's proven lesson: anything but a bare
         // `Button` here stops looking like a "real" toolbar control to the
         // system and falls back to a generic floating switch instead of the
         // native round toolbar-button chrome (and its Liquid Glass material

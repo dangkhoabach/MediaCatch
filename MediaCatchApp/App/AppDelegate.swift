@@ -2,7 +2,7 @@ import AppKit
 import MediaCatchCore
 
 /// Minimal AppKit glue for the 2 behaviors SwiftUI Scenes don't expose (copied
-/// from DKB Monitor): keep running after the last window closes,
+/// from SignalBar): keep running after the last window closes,
 /// and reopen on Dock click.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
