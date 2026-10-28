@@ -125,6 +125,24 @@ this app never shipped a Tauri auto-updater. The admin panel writes
 `updates.dangkhoabach.vn/dkb-downloader/appcast.xml` from the Sparkle
 fields, which `SUFeedURL` in `Info.plist` points at.
 
+## Tag and GitHub release
+
+Once the DMG is on the admin panel, tag the commit that set the version (never a later
+commit) and publish a GitHub release from that tag:
+
+```bash
+git tag v<version> <commit>
+git push origin v<version>
+```
+
+On github.com/dangkhoabach/MediaCatch/releases/new pick that tag, title it
+`MediaCatch <version>` and write the English release notes, then an Install paragraph
+(**Open Anyway** on first launch and **Check for Updates…** for an installed copy) and the
+DMG's SHA-256. Attach the same `MediaCatch-<version>.dmg` that went to the admin panel, not
+a rebuild, and check that the SHA-256 GitHub shows for the asset matches. Older versions get
+no GitHub release. Sparkle keeps reading the appcast on `updates.dangkhoabach.vn`; the
+GitHub release is for people who find the app through the repository.
+
 ## Sidecar binaries (yt-dlp, ffmpeg)
 
 Same seed binaries as the old Tauri build (bundled as-is, not
