@@ -12,26 +12,40 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(SidebarSection.allCases, selection: $navigation.selectedSection) { section in
-                // Every row's icon rendered accent-blue regardless of
-                // selection — the pill highlight was the only thing marking
-                // the current tab. Dimming unselected icons to `.secondary`
-                // (via the icon-only closure, so the label text's own color
-                // is untouched) makes the selected one read as "lit up"
-                // against them. The selected row itself is left un-tinted
-                // here — its pill background is already solid accent color,
-                // so forcing the icon to that same blue made it blend into
-                // its own background; leaving it alone lets the system give
-                // it the same white-on-accent treatment the row's text gets.
-                Label {
-                    Text(section.label)
-                } icon: {
-                    Image(systemName: section.systemImage)
-                        .foregroundStyle(section == navigation.selectedSection ? Color.primary : Color.secondary)
+            List(selection: $navigation.selectedSection) {
+                ForEach(SidebarSection.groups, id: \.titleKey) { group in
+                    Section {
+                        ForEach(group.sections) { section in
+                            // Every row's icon rendered accent-blue regardless of
+                            // selection — the pill highlight was the only thing marking
+                            // the current tab. Dimming unselected icons to `.secondary`
+                            // (via the icon-only closure, so the label text's own color
+                            // is untouched) makes the selected one read as "lit up"
+                            // against them. The selected row itself is left un-tinted
+                            // here — its pill background is already solid accent color,
+                            // so forcing the icon to that same blue made it blend into
+                            // its own background; leaving it alone lets the system give
+                            // it the same white-on-accent treatment the row's text gets.
+                            Label {
+                                Text(section.label)
+                            } icon: {
+                                Image(systemName: section.systemImage)
+                                    .foregroundStyle(section == navigation.selectedSection ? Color.primary : Color.secondary)
+                            }
+                            .tag(section)
+                        }
+                    } header: {
+                        Text(t(group.titleKey))
+                    }
                 }
-                .tag(section)
             }
-            .navigationSplitViewColumnWidth(min: 160, ideal: 180)
+            // Settings is pinned under the list, as in the author's other apps.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                SidebarSettingsRow(title: Text(SidebarSection.settings.label), isSelected: navigation.selectedSection == .settings) {
+                    navigation.selectedSection = .settings
+                }
+            }
+            .navigationSplitViewColumnWidth(min: 200, ideal: 220)
             .focused($sidebarFocused)
         } detail: {
             // Home/Queue/Library/Watch stay mounted permanently (ZStack +

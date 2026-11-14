@@ -4,6 +4,12 @@ enum SidebarSection: String, CaseIterable, Identifiable {
     case home, queue, library, watch, settings
     var id: String { rawValue }
 
+    /// The sidebar's groups, by `t()` key, in order; Settings is pinned under them.
+    static let groups: [(titleKey: String, sections: [SidebarSection])] = [
+        ("nav.group.download", [.home, .queue]),
+        ("nav.group.collection", [.library, .watch]),
+    ]
+
     @MainActor
     var label: String {
         switch self {

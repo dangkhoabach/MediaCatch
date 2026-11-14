@@ -27,6 +27,7 @@
 		9665F058A1C6D47274DA4AE2 /* DownloadEventCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF4E5415FDCB6B4A57CCB78 /* DownloadEventCenter.swift */; };
 		9A0B53F6BFA859A6479F70A3 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75A4355702C40C33C9174C67 /* AppSettings.swift */; };
 		9DFC63125E6C5C2B6FB9C016 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E63D711387AE20C5A978861 /* ContentView.swift */; };
+		F3769EA633D871D93C72630F /* SidebarSettingsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 904297B3BDED2480AC080C72 /* SidebarSettingsRow.swift */; };
 		9E4FB14E8FC5E58FC25A90E4 /* WatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E240618A429FF218AEA736 /* WatchView.swift */; };
 		ACCF7FB05CDC3737D1D6019E /* AppServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04489591DD8D889C118E7EBB /* AppServices.swift */; };
 		ADCC6B0D99F235619B3BC090 /* BackgroundServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B563CA273AC7A9704F5471 /* BackgroundServices.swift */; };
@@ -56,6 +57,7 @@
 		394CF4045AA78118EEBF638E /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		3C7D27CDA26A404C0568645B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		3E63D711387AE20C5A978861 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		904297B3BDED2480AC080C72 /* SidebarSettingsRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarSettingsRow.swift; sourceTree = "<group>"; };
 		45C8C3D6B8A24EDB992DC41A /* WindowAccessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowAccessor.swift; sourceTree = "<group>"; };
 		47B563CA273AC7A9704F5471 /* BackgroundServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundServices.swift; sourceTree = "<group>"; };
 		5E79006CDE76302A44B3BB36 /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
@@ -143,6 +145,7 @@
 			isa = PBXGroup;
 			children = (
 				3E63D711387AE20C5A978861 /* ContentView.swift */,
+				904297B3BDED2480AC080C72 /* SidebarSettingsRow.swift */,
 				127E9939FB47E376C4183946 /* MenuBarPanelView.swift */,
 				C018D7D272CB30A4A2236CB6 /* StatusBarController.swift */,
 				2A0D955A13140FF78D5FF942 /* MenuBarStatsViewModel.swift */,
@@ -356,6 +359,7 @@
 				33C6F11D8E24FA91DD7F0281 /* AppUpdater.swift in Sources */,
 				ADCC6B0D99F235619B3BC090 /* BackgroundServices.swift in Sources */,
 				9DFC63125E6C5C2B6FB9C016 /* ContentView.swift in Sources */,
+				F3769EA633D871D93C72630F /* SidebarSettingsRow.swift in Sources */,
 				BCCADC9B06D560E40B7783A0 /* MediaCatchApp.swift in Sources */,
 				9665F058A1C6D47274DA4AE2 /* DownloadEventCenter.swift in Sources */,
 				24827AD54DB4204A65F9C321 /* HomeView.swift in Sources */,
