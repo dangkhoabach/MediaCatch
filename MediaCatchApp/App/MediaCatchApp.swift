@@ -30,7 +30,7 @@ struct MediaCatchApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: WindowPresenter.mainWindowID) {
             ContentView()
                 .preferredColorScheme(colorScheme)
                 .background(WindowAccessor(delegate: windowDelegate))
@@ -38,6 +38,9 @@ struct MediaCatchApp: App {
                 .onChange(of: theme) { _, _ in applyAppearance() }
         }
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button(t("menubar.about")) { AboutWindow.show() }
+            }
             // Standard Sparkle placement: right under "About MediaCatch"
             // in the app menu — matches lib.rs's Help-menu "Check for
             // Updates…" item in spirit, in the idiomatic macOS location.
@@ -50,19 +53,16 @@ struct MediaCatchApp: App {
             // separate `Settings {}` scene/window). There's no such scene
             // any more — Settings is just another sidebar tab in the main
             // window (see ContentView), so Cmd+, brings that window forward
-            // and selects the same tab the menu bar tray's "Settings…" item
+            // and selects the same tab the menu bar panel's Settings button
             // does, instead of opening a second window.
             CommandGroup(replacing: .appSettings) {
                 Button(t("menubar.settings")) {
-                    AppNavigationState.shared.selectedSection = .settings
-                    WindowPresenter.showMainWindow()
+                    WindowPresenter.showSettings()
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
-        }
-
-        MenuBarExtra("MediaCatch", systemImage: "arrow.down.circle") {
-            MenuBarContentView()
+            // One main window: no File › New Window.
+            CommandGroup(replacing: .newItem) {}
         }
     }
 }

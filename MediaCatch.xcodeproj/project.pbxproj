@@ -8,7 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		180C67DAF4E6718C90460069 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 394CF4045AA78118EEBF638E /* Localization.swift */; };
-		1CD1595D572D7661A81CD73E /* MenuBarContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127E9939FB47E376C4183946 /* MenuBarContentView.swift */; };
+		1CD1595D572D7661A81CD73E /* MenuBarPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127E9939FB47E376C4183946 /* MenuBarPanelView.swift */; };
+		2B7560ADAE374D8E5A5D198C /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C018D7D272CB30A4A2236CB6 /* StatusBarController.swift */; };
 		24827AD54DB4204A65F9C321 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F734AF09FE8A3EACCBE4AE5 /* HomeView.swift */; };
 		307F942945EFEEC16F3FF051 /* AppDatabaseLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD590397FF22B7FEB775803 /* AppDatabaseLocation.swift */; };
 		33C6F11D8E24FA91DD7F0281 /* AppUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78C58512F45E54911228364D /* AppUpdater.swift */; };
@@ -32,6 +33,7 @@
 		AE441394E257A2B0A793D257 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9FC884BA579ECB24B66FE75E /* Assets.xcassets */; };
 		BCCADC9B06D560E40B7783A0 /* MediaCatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197C947F55F0EB572B0B004C /* MediaCatchApp.swift */; };
 		C7E1EEDB52937339EA2A5DD8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89DEED8D5C3439EEAFABF040 /* AppDelegate.swift */; };
+		3B90ABE3A0073F20939A9780 /* AboutWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C3A0C8A67698EFC6DEC30B3 /* AboutWindow.swift */; };
 		E2CD964384BC5878FB677198 /* WindowAccessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45C8C3D6B8A24EDB992DC41A /* WindowAccessor.swift */; };
 		E519030D3AF6D48CF97E8434 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FA759D36DE5D73DD636D5C84 /* Sparkle */; };
 		E5B3F2B04CDB96D00D2ACDFA /* URLValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 799149FA76BE72BD0EC18F99 /* URLValidation.swift */; };
@@ -44,7 +46,8 @@
 
 /* Begin PBXFileReference section */
 		04489591DD8D889C118E7EBB /* AppServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppServices.swift; sourceTree = "<group>"; };
-		127E9939FB47E376C4183946 /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
+		127E9939FB47E376C4183946 /* MenuBarPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPanelView.swift; sourceTree = "<group>"; };
+		C018D7D272CB30A4A2236CB6 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		16C75CB79EAE71BD59C83396 /* MediaCatchCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MediaCatchCore; path = MediaCatchCore; sourceTree = SOURCE_ROOT; };
 		197C947F55F0EB572B0B004C /* MediaCatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaCatchApp.swift; sourceTree = "<group>"; };
 		1E8470DA649B88152D287864 /* AppDatabase+Shared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDatabase+Shared.swift"; sourceTree = "<group>"; };
@@ -61,6 +64,7 @@
 		78C58512F45E54911228364D /* AppUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdater.swift; sourceTree = "<group>"; };
 		799149FA76BE72BD0EC18F99 /* URLValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLValidation.swift; sourceTree = "<group>"; };
 		89DEED8D5C3439EEAFABF040 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		8C3A0C8A67698EFC6DEC30B3 /* AboutWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutWindow.swift; sourceTree = "<group>"; };
 		89E240618A429FF218AEA736 /* WatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchView.swift; sourceTree = "<group>"; };
 		9AD590397FF22B7FEB775803 /* AppDatabaseLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseLocation.swift; sourceTree = "<group>"; };
 		9F734AF09FE8A3EACCBE4AE5 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -139,7 +143,8 @@
 			isa = PBXGroup;
 			children = (
 				3E63D711387AE20C5A978861 /* ContentView.swift */,
-				127E9939FB47E376C4183946 /* MenuBarContentView.swift */,
+				127E9939FB47E376C4183946 /* MenuBarPanelView.swift */,
+				C018D7D272CB30A4A2236CB6 /* StatusBarController.swift */,
 				2A0D955A13140FF78D5FF942 /* MenuBarStatsViewModel.swift */,
 				B56E19B3DBE3FDB313621102 /* NativeSearchField.swift */,
 				9BFCE8BCF83EDFB42F244ABA /* Home */,
@@ -223,6 +228,7 @@
 			children = (
 				1E8470DA649B88152D287864 /* AppDatabase+Shared.swift */,
 				89DEED8D5C3439EEAFABF040 /* AppDelegate.swift */,
+				8C3A0C8A67698EFC6DEC30B3 /* AboutWindow.swift */,
 				A0E308C10C80A18B2C49C97C /* AppNavigationState.swift */,
 				04489591DD8D889C118E7EBB /* AppServices.swift */,
 				75A4355702C40C33C9174C67 /* AppSettings.swift */,
@@ -343,6 +349,7 @@
 				70E4BE52338BC128E776F811 /* AppDatabase+Shared.swift in Sources */,
 				307F942945EFEEC16F3FF051 /* AppDatabaseLocation.swift in Sources */,
 				C7E1EEDB52937339EA2A5DD8 /* AppDelegate.swift in Sources */,
+				3B90ABE3A0073F20939A9780 /* AboutWindow.swift in Sources */,
 				EC19E60CC304A1069F42E57D /* AppNavigationState.swift in Sources */,
 				ACCF7FB05CDC3737D1D6019E /* AppServices.swift in Sources */,
 				9A0B53F6BFA859A6479F70A3 /* AppSettings.swift in Sources */,
@@ -356,7 +363,8 @@
 				E937F52624E1F17DCDDFC97B /* LibraryView.swift in Sources */,
 				4A6B97B1B5F5A8B6CBDEB0D0 /* LibraryViewModel.swift in Sources */,
 				180C67DAF4E6718C90460069 /* Localization.swift in Sources */,
-				1CD1595D572D7661A81CD73E /* MenuBarContentView.swift in Sources */,
+				1CD1595D572D7661A81CD73E /* MenuBarPanelView.swift in Sources */,
+				2B7560ADAE374D8E5A5D198C /* StatusBarController.swift in Sources */,
 				54F8880A3B3ECA58D25E6099 /* MenuBarStatsViewModel.swift in Sources */,
 				544F45432D5CA094D0698070 /* NativeSearchField.swift in Sources */,
 				9455D90FAA98B814327CD00C /* NotificationManager.swift in Sources */,

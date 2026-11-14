@@ -7,6 +7,7 @@ import MediaCatchCore
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         MenuBarStatsViewModel.shared.start()
+        StatusBarController.shared.start()
         BackgroundServices.start()
         _ = AppUpdater.shared // starts Sparkle's check-on-launch loop
         presentDatabaseRecoveryAlertIfNeeded()

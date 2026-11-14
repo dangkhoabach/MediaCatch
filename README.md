@@ -21,8 +21,8 @@ MediaCatch is not affiliated with Replay Media Catcher or any other product with
 - **Watch**: a channel or playlist is checked on a schedule and new uploads are downloaded
   automatically.
 - yt-dlp updates itself in the background, independently of the app's own releases.
-- Notifications, a menu bar count of active downloads, light and dark appearance, English and
-  Vietnamese.
+- Notifications, a menu bar panel with the downloads in progress and those waiting, light and
+  dark appearance, English and Vietnamese.
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/queue-dark.webp"><img src="docs/screenshots/queue-light.webp" alt="The download queue"></picture>
 
